@@ -7,7 +7,7 @@ This guide explains how to run the AI Video Analyzer using Docker for easy deplo
 - Docker installed on your system
 - docker-compose installed (usually comes with Docker Desktop)
 - At least 8GB RAM recommended for Whisper model loading
-- **Note**: The Docker deployment uses CPU-only PyTorch (no GPU acceleration available in containers)
+- **GPU Support**: Optional GPU acceleration available for NVIDIA/AMD GPUs (automatic detection)
 
 ## Quick Start
 
@@ -89,11 +89,30 @@ Place your custom rubric files in the `rubrics/` directory. They will be availab
 
 ### GPU Support
 
-The Docker image includes PyTorch with CUDA support. For GPU acceleration:
+GPU acceleration is automatically configured based on your hardware:
 
 ```bash
-# Run with GPU support (requires NVIDIA Docker)
+# Auto-detect GPU and configure Docker
+./run_gpu.sh
+```
+
+**Supported GPUs:**
+
+- **NVIDIA GPUs**: CUDA acceleration via NVIDIA Container Toolkit (5-10x speedup)
+- **AMD GPUs**: ROCm support for compatible GPUs (3-8x speedup)
+- **Apple Silicon**: MPS acceleration when running natively (not in Docker)
+
+The script automatically detects your GPU type and installs the appropriate PyTorch version. For detailed setup instructions, see [GPU_README.md](GPU_README.md).
+
+**Manual GPU Configuration:**
+
+```bash
+# For NVIDIA GPUs (requires NVIDIA Container Toolkit)
 docker run --gpus all -p 8501:8501 ai-video-analyzer
+
+# For AMD GPUs (requires ROCm)
+export TORCH_VARIANT=rocm
+docker-compose up --build
 ```
 
 ## Troubleshooting

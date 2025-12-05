@@ -230,7 +230,9 @@ pytest -q
 **Slow transcription**
 
 - Whisper runs on CPU by default
-- For faster processing: use a Mac with Apple Silicon or add GPU support
+- For faster processing: use a Mac with Apple Silicon, or enable GPU acceleration:
+  - **Docker**: Run `./run_gpu.sh` for automatic GPU detection
+  - **Native**: GPU acceleration available on NVIDIA/AMD GPUs and Apple Silicon
 
 ## Next Steps
 

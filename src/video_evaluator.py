@@ -545,6 +545,7 @@ class VideoEvaluator:
             cv2 = None
 
         # Load whisper model - medium for optimal multilingual transcription and translation
+        self.whisper_model = None  # Initialize to None
         self.whisper_model_name = None
         self.device = "cpu"  # Default device
         if whisper:
@@ -1162,7 +1163,7 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
             try:
                 client = self.llm.Anthropic(api_key=self.api_key)
                 resp = client.messages.create(
-                    model='claude-3-5-sonnet-20241022',
+                    model='claude-3-5-haiku-20241022',
                     max_tokens=800,
                     temperature=0,  # Deterministic output for consistent scoring
                     messages=[{"role": "user", "content": prompt}]
@@ -1281,7 +1282,7 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
             try:
                 client = self.llm.Anthropic(api_key=self.api_key)
                 resp = client.messages.create(
-                    model='claude-3-5-sonnet-20241022',
+                    model='claude-3-5-haiku-20241022',
                     max_tokens=1000,
                     temperature=0,
                     messages=[{"role": "user", "content": prompt}]
@@ -1488,6 +1489,11 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
     def _evaluate_transcript_chunked(self, transcript: str, segments: List[Dict[str, Any]], visual_analysis: Optional[str] = None) -> Dict[str, Any]:
         """Evaluate long transcripts by breaking them into overlapping chunks and aggregating results."""
         
+        # Check if rubric is complex (many criteria) - use category-based chunking instead
+        total_criteria = sum(len(cat['criteria']) for cat in self.rubric['categories'])
+        if total_criteria > 10:
+            return self._evaluate_transcript_and_category_chunked(transcript, segments, visual_analysis)
+        
         # Chunk the transcript
         chunks = self._chunk_transcript(transcript, chunk_size=8000, overlap=200)
         
@@ -1514,6 +1520,212 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
         
         # Aggregate results across chunks
         return self._aggregate_chunk_results(chunk_results)
+
+    def _evaluate_transcript_and_category_chunked(self, transcript: str, segments: List[Dict[str, Any]], visual_analysis: Optional[str] = None) -> Dict[str, Any]:
+        """Evaluate long transcripts with complex rubrics by breaking transcript into chunks and evaluating categories within each chunk."""
+        
+        # Chunk the transcript
+        chunks = self._chunk_transcript(transcript, chunk_size=8000, overlap=200)
+        
+        if self.verbose:
+            print(f"✓ Split transcript into {len(chunks)} chunks for category-based evaluation")
+        
+        # Evaluate each category across all chunks
+        category_results = {}
+        
+        for category in self.rubric['categories']:
+            if self.verbose:
+                print(f"  Evaluating category '{category['label']}' across {len(chunks)} chunks...")
+            
+            category_scores = {}
+            
+            # Evaluate this category in each transcript chunk
+            for i, chunk in enumerate(chunks):
+                try:
+                    chunk_result = self._evaluate_single_category_in_chunk(category, chunk, i+1, len(chunks), visual_analysis)
+                    # Merge scores from this chunk
+                    for criterion_id, score_data in chunk_result['scores'].items():
+                        if criterion_id not in category_scores:
+                            category_scores[criterion_id] = []
+                        category_scores[criterion_id].append(score_data)
+                        
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Warning: Failed to evaluate category {category['label']} in chunk {i+1} ({e}). Using fallback.")
+                    
+                    # Fallback scores for this category in this chunk
+                    for criterion in category['criteria']:
+                        if criterion['criterion_id'] not in category_scores:
+                            category_scores[criterion['criterion_id']] = []
+                        category_scores[criterion['criterion_id']].append({
+                            "score": int(criterion['max_points'] * 0.6),
+                            "confidence": 3,
+                            "note": f"Auto-generated conservative score for chunk {i+1}"
+                        })
+            
+            # Aggregate scores for this category across chunks
+            aggregated_category_scores = {}
+            category_points = 0
+            
+            for criterion_id, scores_list in category_scores.items():
+                # Average scores across chunks
+                avg_score = sum(s['score'] for s in scores_list) / len(scores_list)
+                max_confidence = max(s['confidence'] for s in scores_list)
+                combined_notes = ' | '.join([s['note'] for s in scores_list if s['note']])
+                
+                aggregated_category_scores[criterion_id] = {
+                    "score": round(avg_score),
+                    "confidence": max_confidence,
+                    "note": f"Aggregated from {len(scores_list)} chunks: {combined_notes}"
+                }
+                category_points += round(avg_score)
+            
+            category_results[category['category_id']] = {
+                "scores": aggregated_category_scores,
+                "category": {
+                    "points": category_points,
+                    "max_points": category['max_points'],
+                    "percentage": (category_points / category['max_points']) * 100 if category['max_points'] > 0 else 0
+                }
+            }
+        
+        # Merge all results
+        all_scores = {}
+        all_categories = {}
+        
+        for cat_id, cat_result in category_results.items():
+            all_scores.update(cat_result['scores'])
+            all_categories[cat_id] = cat_result['category']
+        
+        # Calculate overall results
+        total_points = sum(cat['points'] for cat in all_categories.values())
+        max_points = sum(cat['max_points'] for cat in all_categories.values())
+        percentage = (total_points / max_points) * 100 if max_points > 0 else 0
+        
+        # Use point-based thresholds
+        pass_threshold = self.rubric['thresholds']['pass']
+        revise_threshold = self.rubric['thresholds']['revise']
+        
+        status = 'pass' if total_points >= pass_threshold else ('revise' if total_points >= revise_threshold else 'fail')
+        
+        return {
+            "scores": all_scores,
+            "overall": {
+                "total_points": total_points,
+                "max_points": max_points,
+                "percentage": round(percentage, 1),
+                "pass_status": status
+            },
+            "categories": all_categories,
+            "short_summary": f"Evaluated {len(all_categories)} categories across {len(chunks)} transcript chunks"
+        }
+
+    def _evaluate_single_category_in_chunk(self, category: Dict[str, Any], chunk: str, chunk_num: int, total_chunks: int, visual_analysis: Optional[str] = None) -> Dict[str, Any]:
+        """Evaluate a single category within a transcript chunk."""
+        # Build prompt for this category only
+        criteria_desc = []
+        scores_schema_parts = []
+        
+        for criterion in category['criteria']:
+            criteria_desc.append(f"- {criterion['label']}: {criterion['desc']}")
+            scores_schema_parts.append(f'"{criterion["criterion_id"]}": {{"score": <int 0-{criterion["max_points"]}>, "confidence": <int 1-10>, "note": "<justification>"}}')
+        
+        criteria_text = "\n".join(criteria_desc)
+        scores_schema = ",\n  ".join(scores_schema_parts)
+        
+        prompt = f"""
+You are an expert demo evaluator. Score the following transcript chunk for the category "{category['label']}" on a point-based scale, provide your confidence level in each score (1-10), and provide a justification.
+
+IMPORTANT: Return ONLY valid JSON. Do not include any explanatory text, markdown formatting, or additional content. Start your response with {{ and end with }}.
+
+IMPORTANT: This is chunk {chunk_num} of {total_chunks} from a longer transcript. Evaluate based only on the content in this chunk, but consider the context that this is part of a complete demo presentation.
+
+Category: {category['label']} ({category['max_points']} points total)
+
+Criteria to evaluate:
+{criteria_text}
+
+For each criterion, provide:
+- score: Your evaluation score (0-{category['max_points']})
+- confidence: How confident you are in this score (1-10, where 10 means very confident)
+- note: Brief justification for your score
+
+Return JSON with this EXACT structure:
+{{
+  "scores": {{
+    {scores_schema}
+  }}
+}}
+
+Transcript chunk {chunk_num}/{total_chunks}:\n{chunk[:3000]}
+
+Visual analysis (if any):\n{visual_analysis or 'None'}
+"""
+
+        if self.llm and self.provider == AIProvider.OPENAI:
+            try:
+                client = self.llm.OpenAI(api_key=self.api_key)
+                resp = client.chat.completions.create(
+                    model='gpt-4o-mini',
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=800,
+                    temperature=0,
+                    response_format={"type": "json_object"}
+                )
+                text = resp.choices[0].message.content
+                if text:
+                    result = json.loads(text)
+                    return result
+            except Exception as e:
+                if self.verbose:
+                    print(f"Warning: OpenAI API call failed for category {category['label']} in chunk {chunk_num} ({e}). Using fallback.")
+                pass
+                
+        elif self.llm and self.provider == AIProvider.ANTHROPIC:
+            try:
+                client = self.llm.Anthropic(api_key=self.api_key)
+                resp = client.messages.create(
+                    model='claude-3-5-haiku-20241022',
+                    max_tokens=800,
+                    temperature=0,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                if resp.content and len(resp.content) > 0 and hasattr(resp.content[0], 'text'):
+                    text = resp.content[0].text
+                    if text:
+                        try:
+                            result = json.loads(text)
+                            return result
+                        except json.JSONDecodeError as e:
+                            if self.verbose:
+                                print(f"Warning: Failed to parse JSON response for category {category['label']}: {e}")
+                                print(f"Raw response text: {text[:500]}...")
+                            raise e
+                    else:
+                        if self.verbose:
+                            print(f"Warning: Anthropic response text is empty for category {category['label']} in chunk {chunk_num}")
+                else:
+                    if self.verbose:
+                        print(f"Warning: Anthropic response missing content or text for category {category['label']} in chunk {chunk_num}")
+                        print(f"Response content: {resp.content}")
+            except Exception as e:
+                if self.verbose:
+                    print(f"Warning: Anthropic API call failed for category {category['label']} in chunk {chunk_num} ({e}). Using fallback.")
+                    print(f"Exception details: {type(e).__name__}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                pass
+        
+        # If we get here, API calls failed - return fallback for this category
+        scores = {}
+        for criterion in category['criteria']:
+            scores[criterion['criterion_id']] = {
+                "score": int(criterion['max_points'] * 0.6),
+                "confidence": 3,
+                "note": f"Auto-generated conservative score for category {category['label']} in chunk {chunk_num}"
+            }
+        
+        return {"scores": scores}
 
     def _evaluate_single_chunk(self, chunk: str, chunk_num: int, total_chunks: int, visual_analysis: Optional[str] = None) -> Dict[str, Any]:
         """Evaluate a single transcript chunk."""
@@ -1589,7 +1801,9 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     result = json.loads(text)
                     return result
             except Exception as e:
-                raise e
+                if self.verbose:
+                    print(f"Warning: OpenAI API call failed for chunk {chunk_num} ({e}). Using fallback.")
+                pass
                 
         elif self.llm and self.provider == AIProvider.ANTHROPIC:
             try:
@@ -1603,10 +1817,12 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                 result = json.loads(resp.content[0].text)
                 return result
             except Exception as e:
-                raise e
+                if self.verbose:
+                    print(f"Warning: Anthropic API call failed for chunk {chunk_num} ({e}). Using fallback.")
+                pass
         
-        # If we get here, API calls failed
-        raise RuntimeError("All API calls failed for chunk evaluation")
+        # If we get here, API calls failed - return fallback
+        return self._fallback_single_chunk_evaluation()
 
     def _aggregate_chunk_results(self, chunk_results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Aggregate evaluation results from multiple transcript chunks."""
@@ -1753,35 +1969,14 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
         
         # Evaluate each category separately
         for category in self.rubric['categories']:
-            try:
-                category_result = self._evaluate_single_category(category, transcript, segments, visual_analysis)
-                # Merge scores
-                scores.update(category_result['scores'])
-                # Store category results
-                categories[category['category_id']] = category_result['category']
-                
-                if self.verbose:
-                    print(f"✓ Evaluated category: {category['label']}")
-                    
-            except Exception as e:
-                if self.verbose:
-                    print(f"Warning: Failed to evaluate category {category['label']} ({e}). Using fallback for this category.")
-                
-                # Fallback for this category
-                category_points = 0
-                for criterion in category['criteria']:
-                    score = int(criterion['max_points'] * 0.6)  # Conservative score
-                    scores[criterion['criterion_id']] = {
-                        "score": score,
-                        "note": "Auto-generated conservative score"
-                    }
-                    category_points += score
-                
-                categories[category['category_id']] = {
-                    "points": category_points,
-                    "max_points": category['max_points'],
-                    "percentage": (category_points / category['max_points']) * 100
-                }
+            category_result = self._evaluate_single_category(category, transcript, segments, visual_analysis)
+            # Merge scores
+            scores.update(category_result['scores'])
+            # Store category results
+            categories[category['category_id']] = category_result['category']
+            
+            if self.verbose:
+                print(f"✓ Evaluated category: {category['label']}")
         
         # Calculate overall results
         total_points = sum(cat['points'] for cat in categories.values())
@@ -1864,7 +2059,9 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     result = json.loads(text)
                     return result
             except Exception as e:
-                raise e  # Re-raise to be caught by caller
+                if self.verbose:
+                    print(f"Warning: OpenAI API call failed for category {category['label']} ({e}). Using fallback.")
+                pass
                 
         elif self.llm and self.provider == AIProvider.ANTHROPIC:
             try:
@@ -1878,10 +2075,30 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                 result = json.loads(resp.content[0].text)
                 return result
             except Exception as e:
-                raise e  # Re-raise to be caught by caller
+                if self.verbose:
+                    print(f"Warning: Anthropic API call failed for category {category['label']} ({e}). Using fallback.")
+                pass
         
-        # If we get here, API calls failed
-        raise RuntimeError("All API calls failed for category evaluation")
+        # If we get here, API calls failed - return fallback for this category
+        category_points = 0
+        scores = {}
+        for criterion in category['criteria']:
+            score = int(criterion['max_points'] * 0.6)  # Conservative score
+            scores[criterion['criterion_id']] = {
+                "score": score,
+                "confidence": 5,
+                "note": "Auto-generated conservative score"
+            }
+            category_points += score
+        
+        return {
+            "scores": scores,
+            "category": {
+                "points": category_points,
+                "max_points": category['max_points'],
+                "percentage": (category_points / category['max_points']) * 100 if category['max_points'] > 0 else 0
+            }
+        }
 
     def _fallback_new_rubric_evaluation(self) -> Dict[str, Any]:
         """Fallback evaluation for new rubric format when AI calls fail."""
@@ -2177,7 +2394,7 @@ Return strictly parseable JSON with this exact structure:
                 'device': self.device,
                 'rubric': self.rubric_name,
                 'llm_provider': self.provider.value if hasattr(self.provider, 'value') else str(self.provider),
-                'llm_model': 'gpt-4o-mini' if self.provider == AIProvider.OPENAI else 'claude-3-5-sonnet-20241022',
+                'llm_model': 'gpt-4o-mini' if self.provider == AIProvider.OPENAI else 'claude-3-5-haiku-20241022',
                 'evaluation': evaluation,
                 'feedback': feedback,
                 'transcript': transcription['text'],

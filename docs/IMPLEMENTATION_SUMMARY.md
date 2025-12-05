@@ -232,7 +232,8 @@ streamlit run app/reviewer.py
 
 - Audio extraction: ~5-10% of video duration
 - Whisper transcription: ~20-40% of video duration (CPU)
-- Whisper transcription: ~5-10% of video duration (GPU)
+- Whisper transcription: ~5-10% of video duration (GPU - native)
+- Whisper transcription: ~5-10% of video duration (GPU - Docker with NVIDIA/AMD)
 - LLM evaluation: 5-15 seconds per video
 - Vision analysis: 10-30 seconds per video
 

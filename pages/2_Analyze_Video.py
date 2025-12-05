@@ -162,6 +162,8 @@ if 'uploaded_file' not in st.session_state:
     st.session_state.uploaded_file = None
 if 'video_url' not in st.session_state:
     st.session_state.video_url = ''
+if 'score_overrides' not in st.session_state:
+    st.session_state.score_overrides = {}
 
 # Input method selection
 input_method = st.radio(
@@ -318,7 +320,7 @@ if st.button(button_text, disabled=button_disabled, use_container_width=True, ty
             api_key=openai_key if provider == 'openai' else anthropic_key,
             provider=prov, 
             enable_vision=vision, 
-            verbose=False,  # Back to normal - warnings now shown in UI
+            verbose=False,  # Back to normal - chunking now works properly
             progress_callback=ui_progress_callback,
             translate_to_english=translate
         )
@@ -520,6 +522,33 @@ if st.session_state.analysis_results is not None:
             categories = evaluation.get('categories', {})
             scores = evaluation.get('scores', {})
             
+            # Check if any scores are fallback (heuristic) and show prominent warning
+            fallback_criteria = []
+            
+            # Create criterion label mapping for fallback detection
+            temp_criterion_labels = {}
+            if rubric_data:
+                if "categories" in rubric_data:
+                    # New format
+                    for category in rubric_data["categories"]:
+                        for criterion in category["criteria"]:
+                            temp_criterion_labels[criterion["criterion_id"]] = criterion["label"]
+                else:
+                    # Old format
+                    for criterion in rubric_data["criteria"]:
+                        temp_criterion_labels[criterion["id"]] = criterion["label"]
+            
+            for criterion_id, data in scores.items():
+                note = data.get('note', '')
+                if 'Auto-generated conservative score' in note:
+                    fallback_criteria.append(temp_criterion_labels.get(criterion_id, criterion_id))
+            
+            if fallback_criteria:
+                st.error("🚨 **AI Evaluation Failed** - Using Conservative Fallback Scores")
+                st.warning("The AI API calls failed, so we're using automatic scoring instead of AI evaluation. This may not reflect the true quality of the video. Please check your API key credits and connection.")
+                st.info(f"**Affected criteria:** {', '.join(fallback_criteria)}")
+                st.markdown("---")
+            
             # Create mapping of criteria to categories
             category_criteria = {}
             if rubric_data and "categories" in rubric_data:
@@ -588,15 +617,31 @@ if st.session_state.analysis_results is not None:
             
             st.subheader(f'{tone_emoji} Feedback for Submitter')
             
+            # Check if feedback is fallback-generated
+            is_fallback_feedback = False
+            strengths = feedback.get('strengths', [])
+            improvements = feedback.get('improvements', [])
+            
+            # Check for generic fallback patterns in feedback
+            for item in strengths + improvements:
+                desc = item.get('description', '')
+                if 'You scored' in desc and ('Good performance in this area.' in desc or 'Consider focusing on improving this aspect.' in desc):
+                    is_fallback_feedback = True
+                    break
+            
+            if is_fallback_feedback:
+                st.warning("🤖 **AI Feedback Generation Failed** - Using generic feedback based on scores")
+                st.caption("The AI couldn't generate personalized feedback, so we're showing basic feedback derived from the scores.")
+            
             # Strengths
             st.markdown("### ✓ Strengths")
-            for i, strength in enumerate(feedback.get('strengths', []), 1):
+            for i, strength in enumerate(strengths, 1):
                 with st.expander(f"**{strength.get('title', 'Strength')}**", expanded=True):
                     st.write(strength.get('description', ''))
             
             # Areas for improvement
             st.markdown("### → Areas for Improvement")
-            for i, improvement in enumerate(feedback.get('improvements', []), 1):
+            for i, improvement in enumerate(improvements, 1):
                 with st.expander(f"**{improvement.get('title', 'Area for improvement')}**", expanded=True):
                     st.write(improvement.get('description', ''))
 
@@ -627,17 +672,6 @@ if st.session_state.analysis_results is not None:
                         criterion_labels[criterion["id"]] = criterion["label"]
             
             with st.expander("### 📋 Detailed Criteria Scores", expanded=False):
-                # Check if any scores are fallback (heuristic)
-                fallback_criteria = []
-                for criterion_id, data in scores.items():
-                    note = data.get('note', '')
-                    if 'Auto-generated conservative score' in note:
-                        fallback_criteria.append(criterion_labels.get(criterion_id, criterion_id))
-                
-                if fallback_criteria:
-                    st.warning(f"⚠️ **AI evaluation failed** - Using fallback scoring for: {', '.join(fallback_criteria)}")
-                    st.caption("This happens when the AI API calls fail. Check your API key and network connection.")
-                
                 # Create table headers
                 col1, col2, col3, col4 = st.columns([3, 1, 1, 2])
                 with col1:

@@ -215,8 +215,8 @@ class DependencyChecker:
         # Project structure
         print("Checking project structure...")
         self.check_file_exists('src/video_evaluator.py', 'Core evaluator')
-        self.check_file_exists('cli/evaluate_video.py', 'CLI tool')
-        self.check_file_exists('app/reviewer.py', 'Streamlit app')
+        self.check_file_exists('Home.py', 'Streamlit app (main)')
+        self.check_file_exists('pages/2_Analyze_Video.py', 'Streamlit app (analyze page)')
         self.check_file_exists('requirements.txt', 'Requirements file')
         print()
         
@@ -261,8 +261,8 @@ class DependencyChecker:
             print("The application is ready to use!")
             print()
             print("Quick start:")
-            print("  python cli/evaluate_video.py path/to/demo.mp4 --provider anthropic")
-            print("  streamlit run app/reviewer.py")
+            print("  streamlit run Home.py")
+            print("  python test_data/run_end_to_end_demo.py")
             print()
             return True
 

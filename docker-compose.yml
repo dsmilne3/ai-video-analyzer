@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        TORCH_VARIANT: ${TORCH_VARIANT:-cpu}
     ports:
       - "8501:8501"
     volumes:
@@ -19,6 +21,7 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - TORCH_VARIANT=${TORCH_VARIANT:-cpu}
     restart: unless-stopped
     # macOS-specific settings
     tmpfs:

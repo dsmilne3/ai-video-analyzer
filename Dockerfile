@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
     curl \
+    pciutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user for better security and macOS compatibility
@@ -22,8 +23,16 @@ USER app
 # Copy requirements first for better caching
 COPY --chown=app:app requirements.txt .
 
-# Install PyTorch CPU first (for better caching)
-RUN pip install --no-cache-dir --user torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch - GPU version if available, CPU otherwise
+# This will be overridden by build args
+ARG TORCH_VARIANT=cpu
+RUN if [ "$TORCH_VARIANT" = "cuda" ]; then \
+        pip install --no-cache-dir --user torch>=2.0.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; \
+    elif [ "$TORCH_VARIANT" = "rocm" ]; then \
+        pip install --no-cache-dir --user torch>=2.0.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.0; \
+    else \
+        pip install --no-cache-dir --user torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu; \
+    fi
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --user -r requirements.txt

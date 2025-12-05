@@ -2,6 +2,8 @@
 
 Automatically evaluate demo videos using AI. This project implements a **local-first pipeline** with optional cloud API escalation for cost optimization.
 
+> **⚠️ Virtual Environment Required**: All commands must be run within the project's virtual environment. Use `./activate.sh` to set it up and activate it automatically.
+
 ## Features
 
 ✅ **Implemented (High-Priority Capabilities)**
@@ -24,6 +26,7 @@ Automatically evaluate demo videos using AI. This project implements a **local-f
 - ✓ CLI tool for batch processing
 - ✓ Streamlit reviewer app with file upload and URL input
 - ✓ **Docker deployment** (containerized deployment with volume persistence)
+- ✓ **GPU acceleration support** (NVIDIA CUDA, AMD ROCm, Apple Silicon MPS)
 
 ## Architecture
 
@@ -60,11 +63,12 @@ sudo yum install ffmpeg
 ### 2. Install Python Dependencies
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Set up virtual environment (one-time setup)
+./activate.sh
 
-# Install dependencies
+# Or manually:
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Verify installation
@@ -85,6 +89,25 @@ docker-compose up --build
 
 See [DOCKER_README.md](DOCKER_README.md) for detailed Docker deployment instructions.
 
+#### GPU Acceleration in Docker
+
+For significantly faster processing, enable GPU acceleration:
+
+```bash
+# Auto-detect GPU and configure Docker
+./run_gpu.sh
+```
+
+**GPU Support:**
+
+- **NVIDIA GPUs**: Automatic CUDA acceleration via NVIDIA Container Toolkit
+- **AMD GPUs**: ROCm support for compatible AMD GPUs
+- **Apple Silicon**: MPS acceleration available when running natively (not in Docker)
+
+The script automatically detects your GPU and installs the appropriate PyTorch version.
+
+See [GPU_README.md](GPU_README.md) for detailed GPU setup instructions.
+
 ### 4. Set API Keys (Optional)
 
 For full LLM evaluation (not needed for basic testing):
@@ -96,7 +119,14 @@ export API_KEY=your-openai-or-anthropic-api-key
 ### 5. Run Demo
 
 ```bash
-# Launch reviewer UI (with rubric selector, file upload, and URL input)
+# Quick launch commands (virtual environment activated automatically)
+./run.sh app      # Launch reviewer UI
+./run.sh demo     # Run end-to-end demo
+./run.sh test     # Run tests
+./run.sh check    # Check dependencies
+
+# Or manually activate and run:
+source venv/bin/activate
 streamlit run app/reviewer.py
 ```
 

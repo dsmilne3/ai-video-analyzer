@@ -1,5 +1,6 @@
 torch>=2.0.0  # PyTorch with MPS support for Apple Silicon
-whisper
+transformers  # Required for whisper
+openai-whisper  # Speech recognition
 yt-dlp
 ffmpeg-python
 openai
