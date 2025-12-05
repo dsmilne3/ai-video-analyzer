@@ -27,6 +27,28 @@ except ImportError as e:
 
 st.title('Demo Video Analyzer')
 
+# Configuration management for default rubric
+CONFIG_FILE = Path(__file__).parent.parent / ".streamlit_config.json"
+
+def load_config():
+    """Load configuration from file."""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+def save_config(config):
+    """Save configuration to file."""
+    try:
+        CONFIG_FILE.parent.mkdir(exist_ok=True)
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        st.error(f"Failed to save configuration: {e}")
+
 # Get available rubrics (refreshed on each page load)
 available_rubrics = list_available_rubrics()
 rubric_options = {r['name']: r['filename'] for r in available_rubrics}
@@ -77,27 +99,6 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
 </style>
 """, unsafe_allow_html=True)
 
-# Configuration management for default rubric
-CONFIG_FILE = Path(__file__).parent.parent / ".streamlit_config.json"
-
-def load_config():
-    """Load configuration from file."""
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            pass
-    return {}
-
-def save_config(config):
-    """Save configuration to file."""
-    try:
-        CONFIG_FILE.parent.mkdir(exist_ok=True)
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(config, f, indent=2)
-    except Exception as e:
-        st.error(f"Failed to save configuration: {e}")
 
 # Initialize session state for file uploads
 if 'uploaded_file' not in st.session_state:
@@ -278,6 +279,17 @@ can_analyze = (uploaded is not None or (video_url and video_url.strip() and url_
 
 # Processing options
 st.caption("⚙️ Processing Options")
+transcription_method = st.radio(
+    "Transcription Method",
+    options=["Local (Whisper)", "OpenAI API (Faster)"],
+    help="Choose 'Local' for free (CPU/GPU) or 'OpenAI API' for faster processing (costs money)",
+    horizontal=True
+)
+
+# Warn if OpenAI API transcription is selected but no API key is available
+if "OpenAI API" in transcription_method and not (openai_key and openai_key.startswith('sk-') and not openai_key.endswith('your-openai-key-here')):
+    st.warning("⚠️ OpenAI API transcription selected but no valid OpenAI API key found. Will fall back to local transcription.")
+
 translate = st.checkbox('Translate to English', value=True, help='Automatically translate non-English audio to English using Whisper')
 vision = st.checkbox('Enable visual alignment checks')
 
@@ -301,6 +313,9 @@ if st.button(button_text, disabled=button_disabled, use_container_width=True, ty
         prov = AIProvider.OPENAI if provider == 'openai' else AIProvider.ANTHROPIC
         rubric_filename = rubric_options[selected_rubric_name]
         
+        # Map friendly name to internal value
+        method_internal = "openai" if "OpenAI API" in transcription_method else "local"
+        
         # Progress callback that prints to terminal (stdout)
         def progress_callback(message: str):
             print(message, flush=True)
@@ -320,6 +335,8 @@ if st.button(button_text, disabled=button_disabled, use_container_width=True, ty
                 # Extract model and device info from message like "🎤 Transcribing audio with Whisper base model on CPU..."
                 if "Whisper" in message and "model" in message:
                     progress_placeholder.write(f"⏳ **Step 2/4:** {message.replace('🎤 ', '')}")
+                elif "OpenAI API" in message:
+                    progress_placeholder.write("⏳ **Step 2/4:** Transcribing with OpenAI API...")
                 else:
                     progress_placeholder.write("⏳ **Step 2/4:** Transcribing audio with Whisper model...")
             elif "Analyzing video frames" in message:
@@ -336,9 +353,11 @@ if st.button(button_text, disabled=button_disabled, use_container_width=True, ty
             api_key=openai_key if provider == 'openai' else anthropic_key,
             provider=prov, 
             enable_vision=vision, 
-            verbose=False,  # Back to normal - chunking now works properly
+            verbose=True,  # Back to normal - chunking now works properly
             progress_callback=ui_progress_callback,
-            translate_to_english=translate
+            translate_to_english=translate,
+            transcription_method=method_internal,
+            openai_api_key=openai_key  # Always pass OpenAI key for transcription option
         )
         
         with status_placeholder.container():

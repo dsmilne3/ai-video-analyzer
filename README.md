@@ -4,9 +4,80 @@ Automatically evaluate demo videos using AI. This project implements a **local-f
 
 > **⚠️ Virtual Environment Required**: All commands must be run within the project's virtual environment. Use `./activate.sh` to set it up and activate it automatically.
 
-## Features
+## Install
 
-✅ **Implemented (High-Priority Capabilities)**
+### Docker (Recommended)
+
+For easier deployment without installing system dependencies check [this guide](docs/setup/DOCKER.md) to know where to set your API keys and build for the first time
+
+
+### Locally with Python
+#### 0. Check Dependencies (Recommended First Step)
+
+```bash
+# Check if all dependencies are installed
+python3 check_dependencies.py
+```
+
+This will show you which dependencies are installed and which are missing.
+
+#### 1. Install System Dependencies
+
+```bash
+# macOS
+brew install ffmpeg
+
+# Linux (Ubuntu/Debian)
+sudo apt-get install ffmpeg
+
+# Linux (RHEL/CentOS)
+sudo yum install ffmpeg
+```
+
+#### 2. Install Python Dependencies
+
+```bash
+# Set up virtual environment (one-time setup)
+./activate.sh
+
+# Or manually:
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Verify installation
+python check_dependencies.py
+```
+#### 4. Set API Keys
+
+For full LLM evaluation (not needed for basic testing):
+
+```bash
+export API_KEY=your-openai-or-anthropic-api-key
+```
+
+#### 5. Run Demo
+
+```bash
+# Quick launch commands (virtual environment activated automatically)
+./run.sh app      # Launch reviewer UI
+./run.sh demo     # Run end-to-end demo
+./run.sh test     # Run tests
+./run.sh check    # Check dependencies
+
+# Or manually activate and run:
+source venv/bin/activate
+streamlit run Home.py
+```
+
+**Note**: The `realistic_demo.wav` file contains synthetic speech simulating a real product demo (pre-generated and included in the repo). See `test_data/realistic_demo_script.md` and `test_data/realistic_demo_transcript.md` for the script and transcription.
+
+## Details
+
+<details>
+<summary>Features</summary>
+
+### Features
 
 - ✓ ASR transcription with timestamps using Whisper (local, free)
 - ✓ **Transcription quality metrics** (confidence, speech detection, compression ratio)
@@ -27,141 +98,59 @@ Automatically evaluate demo videos using AI. This project implements a **local-f
 - ✓ Streamlit reviewer app with file upload and URL input
 - ✓ **Docker deployment** (containerized deployment with volume persistence)
 - ✓ **GPU acceleration support** (NVIDIA CUDA, AMD ROCm, Apple Silicon MPS)
+</details>
 
-## Architecture
+<details>
+<summary>Architecture</summary>
+
+### Architecture
 
 **Recommended Default: Local-First with Escalation**
 
 - Primary: Local Whisper transcription + heuristic evaluation (free, privacy-preserving)
 - Escalation: Call paid APIs (OpenAI/Anthropic) only for low-confidence transcripts or human-flagged videos
 - Vision analysis: Optional multimodal alignment checks for transcript verification
+</details>
 
-## Quick Start
+<details>
+<summary>Evaluation Rubrics</summary>
 
-### 0. Check Dependencies (Recommended First Step)
-
-```bash
-# Check if all dependencies are installed
-python3 check_dependencies.py
-```
-
-This will show you which dependencies are installed and which are missing.
-
-### 1. Install System Dependencies
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Linux (Ubuntu/Debian)
-sudo apt-get install ffmpeg
-
-# Linux (RHEL/CentOS)
-sudo yum install ffmpeg
-```
-
-### 2. Install Python Dependencies
-
-```bash
-# Set up virtual environment (one-time setup)
-./activate.sh
-
-# Or manually:
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Verify installation
-python check_dependencies.py
-```
-
-### Alternative: Docker Installation (Recommended)
-
-For easier deployment without installing system dependencies locally:
-
-```bash
-# Ensure Docker and docker-compose are installed
-# Then simply run:
-docker-compose up --build
-
-# Access at http://localhost:8501
-```
-
-See [DOCKER_README.md](DOCKER_README.md) for detailed Docker deployment instructions.
-
-#### GPU Acceleration in Docker
-
-For significantly faster processing, enable GPU acceleration:
-
-```bash
-# Auto-detect GPU and configure Docker
-./run_gpu.sh
-```
-
-**GPU Support:**
-
-- **NVIDIA GPUs**: Automatic CUDA acceleration via NVIDIA Container Toolkit
-- **AMD GPUs**: ROCm support for compatible AMD GPUs
-- **Apple Silicon**: MPS acceleration available when running natively (not in Docker)
-
-The script automatically detects your GPU and installs the appropriate PyTorch version.
-
-See [GPU_README.md](GPU_README.md) for detailed GPU setup instructions.
-
-### 4. Set API Keys
-
-For full LLM evaluation (not needed for basic testing):
-
-```bash
-export API_KEY=your-openai-or-anthropic-api-key
-```
-
-### 5. Run Demo
-
-```bash
-# Quick launch commands (virtual environment activated automatically)
-./run.sh app      # Launch reviewer UI
-./run.sh demo     # Run end-to-end demo
-./run.sh test     # Run tests
-./run.sh check    # Check dependencies
-
-# Or manually activate and run:
-source venv/bin/activate
-streamlit run Home.py
-```
-
-**Note**: The `realistic_demo.wav` file contains synthetic speech simulating a real product demo (pre-generated and included in the repo). See `test_data/realistic_demo_script.md` and `test_data/realistic_demo_transcript.md` for the script and transcription.
-
-## Evaluation Rubrics
+### Evaluation Rubrics
 
 The system supports **multiple evaluation rubrics** for different types of demos. Each rubric defines criteria, weights, and thresholds optimized for specific use cases (e.g., sales demos, technical demos, general partner demos).
 
-### Using Rubrics
+#### Using Rubrics
 
 Use the Streamlit UI to select from available evaluation rubrics. The UI shows all available rubrics with their descriptions and criteria.
 
 **In Streamlit UI:** Select rubric from the dropdown in the sidebar before clicking "Analyze"
 
-### Creating Custom Rubrics
+#### Creating Custom Rubrics
 
-You can create custom rubrics by adding JSON files to the `rubrics/` directory. See `rubrics/README.md` for:
+You can create custom rubrics by adding JSON files to the `rubrics/` directory. See `docs/rubrics/README.md` for:
 
 - Rubric structure and requirements
 - Examples of existing rubrics
 - Instructions for creating custom rubrics
 - Validation rules
 
-## Language Support & Translation
+</details>
+
+
+<details>
+<summary>Language Support & Translation</summary>
+
+### Language Support & Translation 
 
 The system supports **99+ languages** through Whisper's automatic language detection:
 
-### Automatic Language Detection
+#### Automatic Language Detection
 
 Whisper automatically detects the language of the audio and displays it in the UI:
 
 - **UI**: Displays in the Transcription Quality expander
 
-### Translation to English (Default)
+#### Translation to English (Default)
 
 **Translation is enabled by default** to ensure consistent English evaluations across all demos.
 
@@ -182,14 +171,9 @@ Whisper automatically detects the language of the audio and displays it in the U
 - Shows: "Detected Language: ES → 🌐 Translated to English"
 - Evaluation and feedback use the English translation
 
-**Supported languages:** All languages Whisper supports (99+), including:
+**Supported languages:** All languages Whisper supports (99+)
 
-- Spanish, French, German, Italian, Portuguese
-- Japanese, Chinese, Korean
-- Arabic, Russian, Dutch, Polish
-- And many more...
 
-**Future enhancements:** See `REMINDER_TRANSLATION_OPTIONS.md` for additional translation capabilities (translate to languages other than English, multi-language feedback, etc.)
 
 ## Results Storage
 
@@ -219,7 +203,12 @@ Use the Streamlit UI to analyze videos. Results are automatically saved with tim
 
 The `results/` directory is git-ignored to avoid committing evaluation outputs.
 
-## Feedback for Submitters
+</details>
+
+<details>
+<summary>Feedback for Submitters</summary>
+
+### Feedback for Submitters
 
 In addition to numeric scores, the evaluator generates **qualitative feedback** for each video:
 
@@ -231,36 +220,12 @@ In addition to numeric scores, the evaluator generates **qualitative feedback** 
 
 This feedback is designed to help submitters understand their performance and improve future demos.
 
-## Project Structure
+</details>
 
-```
-demo-video-analyzer/
-├── src/
-│   └── video_evaluator.py    # Core evaluator with rubric logic
-├── Home.py                  # Streamlit app entry point
-├── pages/
-│   └── 2_Analyze_Video.py   # Main video analysis interface
-├── rubrics/
-│   ├── sample-rubric.json    # Sample rubric for general demos
-│   ├── sales-demo.json       # Sales-focused rubric
-│   ├── technical-demo.json   # Technical deep-dive rubric
-│   └── README.md             # Rubric documentation
-├── results/                  # Auto-saved evaluation results (git-ignored)
-│   └── .gitignore            # Keeps results private
-├── tests/
-│   └── test_evaluator.py     # Unit tests
-├── test_data/
-│   ├── realistic_demo.wav              # Pre-generated test audio (included)
-│   ├── realistic_demo_script.md        # Original demo script
-│   ├── realistic_demo_transcript.md    # Whisper transcription
-│   ├── realistic_demo_transcript.txt   # Plain text transcript
-│   ├── run_end_to_end_demo.py          # End-to-end testing script
-│   └── README.md                       # Test data documentation
-├── requirements.txt          # Python dependencies
-└── README.md                 # This file
-```
+<details>
+<summary>Cost Optimization</summary>
 
-## Cost Optimization
+### Cost Optimization
 
 **Free/Local Components:**
 
@@ -274,6 +239,7 @@ demo-video-analyzer/
 - OpenAI GPT-4o: ~$2.50 per 1M input tokens, $10 per 1M output tokens
 - Anthropic Claude: ~$3 per 1M input tokens, $15 per 1M output tokens
 - Vision APIs: ~$0.01-0.05 per image
+- Whisper API: 0,006$ per min of audio
 
 **Recommended Strategy:**
 
@@ -284,18 +250,12 @@ demo-video-analyzer/
    - Human-flagged videos requiring deeper analysis
    - Final review/top submissions
 
-## Next Steps
+</details>
 
-**Ready to Implement:**
+<details>
+<summary>Testing</summary>
 
-- [ ] Add escalation hook (auto-route to paid APIs based on confidence thresholds)
-- [ ] Integrate AssemblyAI/Deepgram for production-grade ASR with diarization
-- [ ] Add PII detection and redaction
-- [ ] Implement batch processing queue
-- [ ] Add cost estimator and usage tracking
-- [ ] Build calibration dataset for model tuning
-
-## Testing
+### Testing
 
 ```bash
 # Run unit tests
@@ -305,50 +265,11 @@ pytest -q
 python test_data/run_end_to_end_demo.py
 ```
 
-## Documentation
+</details>
 
-Additional documentation is available in the `docs/` folder:
+<details>
+<summary>Documentation</summary>
 
-- **Feature Documentation:**
+### Documentation
 
-  - `FEEDBACK_FEATURE.md` - Qualitative feedback generation
-  - `MULTI_RUBRIC_FEATURE.md` - Multiple rubric support
-  - `RESULTS_FEATURE.md` - Results saving and export
-  - `TIMESTAMP_FEATURE.md` - Timestamped results implementation
-  - `TRANSCRIPTION_QUALITY.md` - Transcription quality metrics
-
-- **Implementation Details:**
-
-  - `IMPLEMENTATION_SUMMARY.md` - Overall architecture summary
-  - `QUALITATIVE_FEEDBACK_SUMMARY.md` - Feedback system details
-  - `VERIFICATION_RESULTS.md` - Testing and validation
-
-- **Setup Guides:**
-
-  - `API_KEYS.md` - API key configuration
-  - `DEPENDENCY_CHECKER.md` - Dependency verification
-  - `RESULTS_QUICKSTART.md` - Quick start for results feature
-
-- **Examples:**
-
-  - `FEEDBACK_EXAMPLE.md` - Sample feedback outputs
-  - `REALISTIC_TEST_AUDIO.md` - Test data information
-
-- **Behavior Notes:**
-
-  - `STREAMLIT_BEHAVIOR.md` - Streamlit UI behavior notes
-
-- **Reminders:**
-  - `REMINDER_JSON_EXPORT.md` - JSON export feature (currently disabled)
-  - `REMINDER_RUBRIC_HELPER.md` - Rubric helper script idea
-
-## Requirements
-
-- Python 3.9+
-- ffmpeg (for audio/video processing)
-- 2GB+ RAM (for Whisper base model)
-- Optional: GPU for faster transcription
-
-## License
-
-See LICENSE file for details.
+Additional documentation is available in the `docs/` folder.
