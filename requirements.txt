@@ -9,3 +9,4 @@ opencv-python
 streamlit
 tqdm
 python-dotenv
+torchaudio

@@ -1,0 +1,178 @@
+{
+  "rubric_id": "p-ditl",
+  "version": "1.0",
+  "status": "current",
+  "name": "Partner Day in the Life Demo Rubric",
+  "description": "Rubric for AI pre-grading and human review of partner 'Day in the Life' demo submissions",
+  "categories": [
+    {
+      "category_id": "p-ditl_cat01",
+      "label": "Opening – Value Framing & Context",
+      "weight": 0.25,
+      "max_points": 20,
+      "criteria": [
+        {
+          "criterion_id": "p-ditl_cat01_crit01",
+          "label": "Grafana Cloud Overview Clarity",
+          "desc": "Clearly states what Grafana Cloud is and the problem space it addresses (unified observability for metrics/logs/traces), distinguishing from Grafana open source",
+          "max_points": 4
+        },
+        {
+          "criterion_id": "p-ditl_cat01_crit02",
+          "label": "Big Tent Philosophy",
+          "desc": "Explains Grafana Cloud's unique approach to unifying data without requiring it to reside in the platform",
+          "max_points": 4
+        },
+        {
+          "criterion_id": "p-ditl_cat01_crit03",
+          "label": "Open & Composable Story",
+          "desc": "Explains Grafana Cloud's support for open standards (e.g., Prometheus, OpenTelemetry) and vendor-neutral flexibility, avoiding vendor lock-in.",
+          "max_points": 4
+        },
+        {
+          "criterion_id": "p-ditl_cat01_crit04",
+          "label": "Opinionated Solutions",
+          "desc": "Introduces two or more out of Grafana Cloud's box solution offerings - Kubernetes infrastructure monitoring, Application Observability, Database Observability, Front End observability,  Incident Response Management (IRM), or Load Testing and Synthetics (K6)",
+          "max_points": 4
+        },
+        {
+          "criterion_id": "p-ditl_cat01_crit05",
+          "label": "Transition into Demo",
+          "desc": "Smoothly bridges the narrative into the product: what the viewer is about to see and why those screens are relevant.",
+          "max_points": 2
+        },
+        {
+          "criterion_id": "p-ditl_cat01_crit06",
+          "label": "Customer Problem Framing",
+          "desc": "Sets a believable incident/use case (e.g., alert on a critical service), why it matters to the business, and what success looks like.",
+          "max_points": 2
+        }
+      ]
+    },
+    {
+      "category_id": "p-ditl_cat02",
+      "label": "Demo Execution – Troubleshooting & Insight",
+      "weight": 0.35,
+      "max_points": 20,
+      "criteria": [
+        {
+          "criterion_id": "p-ditl_cat02_crit01",
+          "label": "Scenario Initialization in Grafana Cloud",
+          "desc": "Starts in the right place (alert or service), orients the viewer (time range, scope), and names the target service/issue.",
+          "max_points": 2
+        },
+        {
+          "criterion_id": "p-ditl_cat02_crit02",
+          "label": "Step-by-Step Troubleshooting",
+          "desc": "Follows a logical path through the UI (e.g., service health → traces → logs), introducing Kubernetes infrastructure visibility and Database monitoring without thrashing; each click advances the investigation.",
+          "max_points": 6
+        },
+        {
+          "criterion_id": "p-ditl_cat02_crit03",
+          "label": "Explanation of Insights",
+          "desc": "Interprets what the charts/logs/traces mean (e.g., latency/error patterns, dependency impact) and articulates cause/effect in plain language.",
+          "max_points": 6
+        },
+        {
+          "criterion_id": "p-ditl_cat02_crit04",
+          "label": "Ease of Use",
+          "desc": "Demonstrates Grafana Cloud’s ease of use by maintaining context across views—e.g., traces to related logs or logs to the originating Kubernetes pod—and by using Builder Mode to simplify query creation with guided selectors.",
+          "max_points": 3
+        },
+        {
+          "criterion_id": "p-ditl_cat02_crit05",
+          "label": "Technical Accuracy",
+          "desc": "Uses correct terminology and queries; no factual misreads of charts, errors, or metrics; conclusions match the data shown.",
+          "max_points": 3
+        }
+      ]
+    },
+    {
+      "category_id": "p-ditl_cat03",
+      "label": "Closing – Differentiation & Business Impact",
+      "weight": 0.25,
+      "max_points": 20,
+      "criteria": [
+        {
+          "criterion_id": "p-ditl_cat03_crit01",
+          "label": "Grafana Cloud Integration Story",
+          "desc": "Summarizes how metrics, logs, and traces (and related capabilities) work together in Grafana Cloud to speed root-cause analysis and reduce tool-switching.",
+          "max_points": 10
+        },
+        {
+          "criterion_id": "p-ditl_cat03_crit02",
+          "label": "Business Outcome Tie-Back",
+          "desc": "Clearly states the customer impact (e.g., reduced MTTR, improved reliability, faster releases, increased customer retention and revenue).",
+          "max_points": 10
+        }
+      ]
+    },
+    {
+      "category_id": "p-ditl_cat04",
+      "label": "Communication & Delivery",
+      "weight": 0.1,
+      "max_points": 20,
+      "criteria": [
+        {
+          "criterion_id": "p-ditl_cat04_crit01",
+          "label": "Presentation Skills",
+          "desc": "Confident, clear voice; minimal filler; steady pace; engages the viewer.",
+          "max_points": 5
+        },
+        {
+          "criterion_id": "p-ditl_cat04_crit02",
+          "label": "Audience Alignment",
+          "desc": "Calibrates depth for a pre-sales audience; explains 'why it matters' more than raw features.",
+          "max_points": 5
+        },
+        {
+          "criterion_id": "p-ditl_cat04_crit03",
+          "label": "Narrative Cohesion",
+          "desc": "Maintains a coherent story from opening to resolution; transitions are explicit and smooth.",
+          "max_points": 5
+        },
+        {
+          "criterion_id": "p-ditl_cat04_crit04",
+          "label": "Time Management & Clarity",
+          "desc": "Finishes ≤10 minutes; prioritizes essentials; avoids detours and on-the-fly setup.",
+          "max_points": 5
+        }
+      ]
+    },
+    {
+      "category_id": "p-ditl_cat05",
+      "label": "Professionalism & Compliance",
+      "weight": 0.05,
+      "max_points": 20,
+      "criteria": [
+        {
+          "criterion_id": "p-ditl_cat05_crit01",
+          "label": "Environment Setup & Readiness",
+          "desc": "Uses the assigned Grafana Cloud demo environment; dashboards/data sources are ready; no login errors, clutter, or unrelated tabs.",
+          "max_points": 8
+        },
+        {
+          "criterion_id": "p-ditl_cat05_crit02",
+          "label": "Submission Compliance",
+          "desc": "Follows all instructions (≤15 min, correct scenario scope, proper submission channel/filename/format).",
+          "max_points": 7
+        },
+        {
+          "criterion_id": "p-ditl_cat05_crit03",
+          "label": "Brand Representation",
+          "desc": "Professional visual presence; accurate product naming; appropriate Grafana/partner branding; no off-brand screens.",
+          "max_points": 5
+        }
+      ]
+    }
+  ],
+  "scale": {
+    "min": 0,
+    "max": 100
+  },
+  "overall_method": "total_points",
+  "thresholds": {
+    "pass": 70,
+    "revise": 60
+  }
+}

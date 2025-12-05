@@ -108,7 +108,7 @@ The script automatically detects your GPU and installs the appropriate PyTorch v
 
 See [GPU_README.md](GPU_README.md) for detailed GPU setup instructions.
 
-### 4. Set API Keys (Optional)
+### 4. Set API Keys
 
 For full LLM evaluation (not needed for basic testing):
 

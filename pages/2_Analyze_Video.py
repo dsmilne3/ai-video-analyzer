@@ -73,6 +73,14 @@ rubric_descriptions = {r['name']: r['description'] for r in available_rubrics}
 config = load_config()
 default_rubric_filename = config.get('default_rubric', 'sample-rubric')  # Default to 'sample-rubric'
 
+# Validate that the configured default rubric still exists
+if default_rubric_filename not in rubric_options.values():
+    # Clear invalid default rubric from config
+    if 'default_rubric' in config:
+        del config['default_rubric']
+        save_config(config)
+    default_rubric_filename = 'sample-rubric'  # Reset to default
+
 # Find the rubric name that corresponds to the default filename
 default_rubric_name = None
 for name, filename in rubric_options.items():

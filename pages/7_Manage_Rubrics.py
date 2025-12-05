@@ -49,10 +49,12 @@ else:
     if 'auto_select_rubric' in st.session_state:
         # Auto-select the specified rubric
         rubric_name = st.session_state['auto_select_rubric']
-        if rubric_name in [r['filename'] for r in available_rubrics]:
-            default_index = [r['filename'] for r in available_rubrics].index(rubric_name) + 1  # +1 because of empty option
-        # Clean up the auto-select state after use
-        del st.session_state['auto_select_rubric']
+        available_filenames = [r['filename'] for r in available_rubrics]
+        if rubric_name in available_filenames:
+            default_index = available_filenames.index(rubric_name) + 1  # +1 because of empty option
+        else:
+            # Clear invalid auto-select state
+            del st.session_state['auto_select_rubric']
     
     version_rubric_name = st.selectbox(
         "Select rubric",

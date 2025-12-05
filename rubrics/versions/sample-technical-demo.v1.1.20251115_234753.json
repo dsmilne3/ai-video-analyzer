@@ -1,0 +1,72 @@
+{
+  "rubric_id": "sample-technical-demo",
+  "version": "1.1",
+  "status": "archive",
+  "name": "SampleTechnical Demo Rubric",
+  "description": "Optimized for technical partner demos and deep-dive presentations",
+  "categories": [
+    {
+      "category_id": "technical_depth",
+      "label": "Technical Depth",
+      "weight": 0.75,
+      "max_points": 38,
+      "criteria": [
+        {
+          "criterion_id": "technical_accuracy",
+          "label": "Technical Accuracy",
+          "desc": "Correctness and depth of technical claims and explanations",
+          "max_points": 20
+        },
+        {
+          "criterion_id": "completeness",
+          "label": "Completeness",
+          "desc": "Thorough coverage of technical features and implementation details",
+          "max_points": 13
+        },
+        {
+          "criterion_id": "code_quality",
+          "label": "Code Quality",
+          "desc": "Quality of code examples and technical demonstrations",
+          "max_points": 5
+        }
+      ]
+    },
+    {
+      "category_id": "communication",
+      "label": "Communication",
+      "weight": 0.2,
+      "max_points": 10,
+      "criteria": [
+        {
+          "criterion_id": "clarity",
+          "label": "Clarity",
+          "desc": "How easy complex technical concepts are to understand",
+          "max_points": 10
+        }
+      ]
+    },
+    {
+      "category_id": "presentation",
+      "label": "Presentation",
+      "weight": 0.05,
+      "max_points": 2,
+      "criteria": [
+        {
+          "criterion_id": "production_quality",
+          "label": "Production Quality",
+          "desc": "Audio clarity and pacing",
+          "max_points": 2
+        }
+      ]
+    }
+  ],
+  "scale": {
+    "min": 0,
+    "max": 50
+  },
+  "overall_method": "total_points",
+  "thresholds": {
+    "pass": 37,
+    "revise": 27
+  }
+}

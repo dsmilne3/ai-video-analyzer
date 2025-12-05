@@ -48,8 +48,5 @@ output/
 results/
 *.json.bak
 
-# Rubrics: ignore all except default* and test* and markdown files
-rubrics/*
-!rubrics/default*.json
-!rubrics/test*.json
-!rubrics/*.md
+# User configuration
+.streamlit_config.json

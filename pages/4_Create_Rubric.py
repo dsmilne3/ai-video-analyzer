@@ -221,12 +221,15 @@ with st.form("create_rubric_form"):
 if 'auto_select_rubric' in st.session_state:
     rubric_name = st.session_state['auto_select_rubric']
     # Try to get the rubric data to show the name
-    rubric_data, _ = load_rubric_from_file(rubric_name)
-    display_name = rubric_data.get('name', rubric_name) if rubric_data else rubric_name
-    st.success(f"✅ Rubric '{display_name}' created successfully!")
-    st.info("Use the buttons below to view, edit, or manage it.")
-    st.balloons()
-    # Don't clear session state here - let navigation buttons handle it
+    rubric_data, error = load_rubric_from_file(rubric_name)
+    if rubric_data:
+        display_name = rubric_data.get('name', rubric_name)
+        st.success(f"✅ Rubric '{display_name}' created successfully!")
+        st.info("Use the buttons below to view, edit, or manage it.")
+        st.balloons()
+    else:
+        # Rubric doesn't exist, clear the session state
+        del st.session_state['auto_select_rubric']
 
 # Navigation
 st.markdown("---")
