@@ -127,7 +127,7 @@ export API_KEY=your-openai-or-anthropic-api-key
 
 # Or manually activate and run:
 source venv/bin/activate
-streamlit run app/reviewer.py
+streamlit run Home.py
 ```
 
 **Note**: The `realistic_demo.wav` file contains synthetic speech simulating a real product demo (pre-generated and included in the repo). See `test_data/realistic_demo_script.md` and `test_data/realistic_demo_transcript.md` for the script and transcription.
@@ -237,8 +237,9 @@ This feedback is designed to help submitters understand their performance and im
 demo-video-analyzer/
 ├── src/
 │   └── video_evaluator.py    # Core evaluator with rubric logic
-├── app/
-│   └── reviewer.py           # Streamlit reviewer UI
+├── Home.py                  # Streamlit app entry point
+├── pages/
+│   └── 2_Analyze_Video.py   # Main video analysis interface
 ├── rubrics/
 │   ├── sample-rubric.json    # Sample rubric for general demos
 │   ├── sales-demo.json       # Sales-focused rubric

@@ -59,7 +59,7 @@ save_results(result, filename, output_format='json')  # Add this back for JSON
 
 ### Quick Steps:
 
-1. **Update UI** (`app/reviewer.py`):
+1. **Update UI** (`pages/2_Analyze_Video.py`):
 
    ```python
    # Add back JSON saving

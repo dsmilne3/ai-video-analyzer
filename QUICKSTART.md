@@ -50,7 +50,7 @@ python test_data/run_end_to_end_demo.py
 
 ```bash
 source .venv/bin/activate
-streamlit run app/reviewer.py
+streamlit run Home.py
 ```
 
 Then open the URL in your browser. The UI supports:
@@ -207,7 +207,7 @@ Share results with partner
 source .venv/bin/activate
 
 # Launch UI
-streamlit run app/reviewer.py
+streamlit run Home.py
 
 # Run tests
 pytest -q

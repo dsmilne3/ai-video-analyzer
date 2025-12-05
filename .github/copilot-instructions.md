@@ -7,7 +7,8 @@ This is a Python-based AI video evaluation system that transcribes demo videos u
 ## Key Components
 
 - **`src/video_evaluator.py`**: Core VideoEvaluator class handling transcription, evaluation, and feedback generation
-- **`app/reviewer.py`**: Streamlit web UI for interactive evaluation with rubric management
+- **`Home.py`**: Streamlit app entry point
+- **`pages/2_Analyze_Video.py`**: Main video analysis interface with rubric management
 - **`rubrics/`**: JSON rubric definitions (see `rubrics/sample-rubric.json` for hierarchical format)
 - **`results/`**: Auto-saved evaluation outputs with timestamps (git-ignored)
 
@@ -16,7 +17,7 @@ This is a Python-based AI video evaluation system that transcribes demo videos u
 1. **Setup**: `pip install -r requirements.txt` + `brew install ffmpeg`
 2. **Check dependencies**: `python check_dependencies.py`
 3. **Run tests**: `pytest -q`
-4. **UI development**: `streamlit run app/reviewer.py`
+4. **UI development**: `streamlit run Home.py`
 5. **Rubric management**: Use the sidebar in the Streamlit UI for creating, editing, and managing rubrics
 
 ## Rubric System

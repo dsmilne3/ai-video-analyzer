@@ -135,7 +135,7 @@ The web interface shows quality metrics prominently:
    - Added `_calculate_transcription_quality()` method
    - Added `quality` field to result dictionary
 
-2. **`app/reviewer.py`** (+37 lines)
+2. **`pages/2_Analyze_Video.py`** (+37 lines)
 
    - Added quality metrics section in results display
    - Color-coded quality rating badges

@@ -17,7 +17,7 @@ A comprehensive dependency checker that validates:
 
 **Updated Files:**
 
-1. `app/reviewer.py` - Added dependency check on startup + sidebar status indicator
+1. `pages/2_Analyze_Video.py` - Added dependency check on startup + sidebar status indicator
 2. `README.md` - Added dependency check as step 0 in Quick Start
 
 ## Usage
@@ -61,7 +61,7 @@ RESULTS
 The application is ready to use!
 
 Quick start:
-  streamlit run app/reviewer.py
+  streamlit run Home.py
 ```
 
 ### Example Output - Missing Dependencies
@@ -122,7 +122,7 @@ Fix the errors above and run this check again.
 - 0: All checks passed (or only optional deps missing)
 - 1: Required dependencies missing
 
-### Enhanced Streamlit App (`app/reviewer.py`)
+### Enhanced Streamlit App (`pages/2_Analyze_Video.py`)
 
 **Startup Check:**
 
@@ -170,7 +170,7 @@ python check_dependencies.py
 
 ```bash
 # Try to launch Streamlit app
-streamlit run app/reviewer.py
+streamlit run Home.py
 
 # Get error in UI: ModuleNotFoundError: No module named 'whisper'
 # Error message suggests running check_dependencies.py
@@ -191,7 +191,7 @@ python check_dependencies.py
 
 ```bash
 # Launch Streamlit
-streamlit run app/reviewer.py
+streamlit run Home.py
 
 # App shows red error message:
 #   "❌ Missing dependencies!"
@@ -222,7 +222,7 @@ python check_dependencies.py
 # Output: ✅ ALL CHECKS PASSED
 
 # Test Streamlit app
-streamlit run app/reviewer.py
+streamlit run Home.py
 # Sidebar shows: ✓ ffmpeg installed
 ```
 

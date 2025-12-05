@@ -120,7 +120,7 @@ print(f"Score: {result['evaluation']['overall']['weighted_score']:.1f}/10")
 ### Streamlit UI
 
 ```bash
-streamlit run app/reviewer.py
+streamlit run Home.py
 # Upload test_data/realistic_demo.wav
 ```
 

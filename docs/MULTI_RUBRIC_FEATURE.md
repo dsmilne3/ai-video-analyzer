@@ -96,7 +96,7 @@ See `rubrics/README.md` for detailed instructions.
    - Changed all `RUBRIC` references to `self.rubric` for instance-specific rubrics
    - Dynamic LLM prompt generation based on rubric criteria
 
-2. **`app/reviewer.py`**
+2. **`pages/2_Analyze_Video.py`**
 
    - Added rubric selection dropdown in sidebar
    - Displays rubric description and criteria

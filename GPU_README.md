@@ -68,7 +68,7 @@ Run natively (not in Docker) for MPS acceleration:
 
 ```bash
 ./activate.sh
-streamlit run app/reviewer.py
+streamlit run Home.py
 ```
 
 ## Performance Comparison

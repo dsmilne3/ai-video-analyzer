@@ -24,7 +24,7 @@
 
 ```bash
 # Start UI
-streamlit run app/reviewer.py
+streamlit run Home.py
 
 # 1. Upload video/audio or provide URL
 # 2. Configure evaluation settings (rubric, provider, etc.)

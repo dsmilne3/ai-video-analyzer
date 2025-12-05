@@ -58,7 +58,7 @@ python cli/evaluate_video.py french_video.mp4 --provider anthropic --translate
 
 ### 3. Streamlit UI Support
 
-**File:** `app/reviewer.py`
+**File:** `pages/2_Analyze_Video.py`
 
 **Added:**
 

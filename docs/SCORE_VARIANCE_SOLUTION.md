@@ -229,7 +229,7 @@ To verify consistency improvement, periodically run:
 
 ```bash
 # Test same video 5 times in Streamlit UI
-# 1. Launch: streamlit run app/reviewer.py
+# 1. Launch: streamlit run Home.py
 # 2. Upload test_data/realistic_demo.wav
 # 3. Select OpenAI provider
 # 4. Click "Evaluate Video" 5 times

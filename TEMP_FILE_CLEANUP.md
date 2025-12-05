@@ -81,7 +81,7 @@ Added `import shutil` at the top of the file (line 3) for `rmtree()` functionali
    - **What:** The downloaded video/audio file from URL
    - **Method:** `os.remove(downloaded_file)`
 
-2. **UI Uploads** - `app/reviewer.py` (lines 360-365)
+2. **UI Uploads** - `pages/2_Analyze_Video.py` (lines 360-365)
    - **When:** Immediately after each UI analysis (in `finally` block)
    - **What:** The uploaded file saved to `/tmp/`
    - **Method:** `os.remove(tmp)`
@@ -163,7 +163,7 @@ Temp dir exists after deletion: False
 2. **UI Usage:**
 
    ```bash
-   streamlit run app/reviewer.py
+   streamlit run Home.py
    ```
 
    - VideoEvaluator created for each analysis
@@ -290,7 +290,7 @@ Potential improvements (not currently needed):
 ### Existing Cleanup Logic
 
 1. **URL Downloads:** `src/video_evaluator.py` lines 945-952
-2. **UI Uploads:** `app/reviewer.py` lines 360-365
+2. **UI Uploads:** `pages/2_Analyze_Video.py` lines 360-365
 
 ### New Cleanup Logic
 
