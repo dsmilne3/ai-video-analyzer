@@ -198,6 +198,12 @@ Install packages and run with `opentelemetry-instrument`:
 - [ ] **Multi-Language Translation**: Implement GPT/Claude translation for languages other than English
 - [ ] **Native Language Feedback**: Generate feedback in submitter's native language
 - [ ] **Translation Options**: Add support for dedicated translation libraries (deep-translator, argostranslate)
+- [ ] Add escalation hook (auto-route to paid APIs based on confidence thresholds)
+
+
+## Improved Analysis Consistency
+
+- [ ] Build calibration dataset for model tuning (per rubric)
 
 ---
 

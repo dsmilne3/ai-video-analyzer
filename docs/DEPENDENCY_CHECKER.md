@@ -2,9 +2,9 @@
 
 ## What Was Added
 
-### New File: `check_dependencies.py`
+### New File & wrapper script: `run.sh check`
 
-A comprehensive dependency checker that validates:
+Script's `check` option sets the Python virtual environment and calls a comprehensive dependency checker, `check_dependencies.py` that validates:
 
 - Python version (3.9+)
 - System dependencies (ffmpeg)
@@ -25,7 +25,8 @@ A comprehensive dependency checker that validates:
 ### Check All Dependencies
 
 ```bash
-python check_dependencies.py
+# From the project root
+./run.sh check
 ```
 
 ### Example Output - All Dependencies Present
@@ -91,7 +92,7 @@ Fix the errors above and run this check again.
 
 ## Features
 
-### Dependency Checker (`check_dependencies.py`)
+### Dependency Checker Script Wrapper (`run.sh check`)
 
 **System Checks:**
 
@@ -152,7 +153,7 @@ git clone <repo-url>
 cd demo-video-analyzer
 
 # 2. Check dependencies (before installing anything)
-python3 check_dependencies.py
+./run.sh check
 # Output: Shows what's missing
 
 # 3. Follow instructions from output
@@ -162,7 +163,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # 4. Verify installation
-python check_dependencies.py
+./run.sh check
 # Output: ✅ ALL CHECKS PASSED
 ```
 
@@ -173,17 +174,17 @@ python check_dependencies.py
 streamlit run Home.py
 
 # Get error in UI: ModuleNotFoundError: No module named 'whisper'
-# Error message suggests running check_dependencies.py
+# Error message suggests running dependency checker script wrapper
 
 # Run dependency checker
-python check_dependencies.py
+./run.sh check
 # Output: Shows whisper is missing
 
 # Install missing package
 pip install openai-whisper
 
 # Verify
-python check_dependencies.py
+./run.sh check
 # Output: ✅ ALL CHECKS PASSED
 ```
 
@@ -195,10 +196,10 @@ streamlit run Home.py
 
 # App shows red error message:
 #   "❌ Missing dependencies!"
-#   With instructions to run check_dependencies.py
+#   With instructions to run dependency check script wrapper
 
 # Follow instructions
-python check_dependencies.py
+./run.sh
 # See what's missing and fix
 ```
 
@@ -217,7 +218,7 @@ All dependency checks verified:
 
 ```bash
 # Run the checker
-python check_dependencies.py
+./run.sh check
 # Exit code: 0
 # Output: ✅ ALL CHECKS PASSED
 

@@ -2,21 +2,32 @@
 
 This guide explains how to securely configure API keys for the video evaluator.
 
+## Why API Keys Are Required
+
+**API keys are required** for the core qualitative analysis and feedback generation features. The system uses LLM APIs (OpenAI or Anthropic) to:
+
+- Evaluate video transcripts against rubrics with intelligent scoring
+- Generate detailed qualitative feedback with specific strengths and improvement suggestions
+- Provide adaptive tone (congratulatory/supportive) based on performance
+
+Without API keys, the system falls back to basic heuristic methods that provide conservative, but less accurate scoring and generic feedback.
+
 ## Quick Setup
 
 ### 1. Create Your .env File
 
 ```bash
-# Copy the example template
+# Option A: If .env doesn't exist yet
 cp .env.example .env
 
-# Edit with your actual keys
-nano .env  # or vim, or code .env
+# Option B: If .env already exists (e.g., from running run_gpu.sh)
+# Just edit the existing .env file and add the API keys below
+# Your GPU settings will be preserved
 ```
 
 ### 2. Add Your API Keys
 
-Edit `.env` to include your actual keys:
+Edit `.env` to include your actual keys (add these lines if they're not already there):
 
 ```bash
 # OpenAI API Key (required for OpenAI provider)
@@ -31,6 +42,8 @@ ANTHROPIC_API_KEY=sk-ant-xyz789abc...
 ```bash
 chmod 600 .env
 ```
+
+**Note**: If you've already run `./run_gpu.sh`, your `.env` file may already exist with GPU configuration variables. Simply add the API keys above to your existing `.env` file - don't overwrite it!
 
 This ensures only you can read/write the file.
 
@@ -60,6 +73,29 @@ print('✓ Anthropic key loaded' if os.getenv('ANTHROPIC_API_KEY') else '✗ No 
 
 ## How Keys Are Loaded
 
+The system supports **two methods** for configuring API keys, with environment variables taking precedence:
+
+### Method 1: .env File (Recommended)
+Keys in `.env` file are automatically loaded when the app starts.
+
+### Method 2: Environment Variables
+You can also set keys directly in your shell environment:
+
+```bash
+# For current session only
+export OPENAI_API_KEY=sk-proj-your-key-here
+export ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# For permanent setup, add to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+echo 'export OPENAI_API_KEY=sk-proj-your-key-here' >> ~/.zshrc
+echo 'export ANTHROPIC_API_KEY=sk-ant-your-key-here' >> ~/.zshrc
+```
+
+### Precedence Rules
+1. **Environment variables** override `.env` file values
+2. If neither exists, the app falls back to heuristic evaluation (limited functionality)
+3. **Restart required**: After changing environment variables, restart Streamlit
+
 The system automatically loads API keys from environment variables based on the provider:
 
 - **OpenAI provider** → Looks for `OPENAI_API_KEY`
@@ -79,22 +115,22 @@ result = evaluator.process("demo.mp4")
 
 ## Running Tests
 
-### Without API Keys (Mock Mode)
+### Without API Keys (Mock Mode - Limited Functionality)
 
 ```bash
 python -m pytest tests/test_evaluator.py -v
 ```
 
-Tests will run using mock evaluations (no actual API calls).
+Tests will run using mock evaluations with basic heuristic scoring (no qualitative analysis).
 
-### With API Keys (Real API Calls)
+### With API Keys (Full Functionality)
 
 ```bash
 # Ensure .env exists with your keys
 python -m pytest tests/test_evaluator.py -v
 ```
 
-With API keys configured in `.env`, the system will use real API calls for evaluation.
+With API keys configured, tests use real API calls for comprehensive evaluation and feedback generation.
 
 ## Security Best Practices
 
@@ -145,10 +181,12 @@ chmod 600 .env
 
 ## Environment Variables Reference
 
-| Variable            | Purpose                      | Required For       |
-| ------------------- | ---------------------------- | ------------------ |
-| `OPENAI_API_KEY`    | OpenAI API authentication    | OpenAI provider    |
-| `ANTHROPIC_API_KEY` | Anthropic API authentication | Anthropic provider |
+| Variable            | Purpose                      | Required For                  |
+| ------------------- | ---------------------------- | ----------------------------- |
+| `OPENAI_API_KEY`    | OpenAI API authentication    | OpenAI provider (recommended) |
+| `ANTHROPIC_API_KEY` | Anthropic API authentication | Anthropic provider            |
+
+**Note**: At least one API key is required for qualitative analysis features. Without API keys, the system uses heuristic fallback methods with limited functionality.
 
 ## Example .env File
 

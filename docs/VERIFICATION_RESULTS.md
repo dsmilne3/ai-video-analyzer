@@ -41,7 +41,7 @@ tests/test_evaluator.py::test_evaluate_sample_transcript PASSED                 
 ### ✅ End-to-End Demo
 
 ```bash
-$ python test_data/run_end_to_end_demo.py
+$ python tests/run_end_to_end_demo.py
 ```
 
 **Components Verified:**
@@ -127,7 +127,7 @@ $ streamlit run app/reviewer.py
 
 ### Test 2: End-to-End Demo
 
-- **Command:** `python test_data/run_end_to_end_demo.py`
+- **Command:** `python tests/run_end_to_end_demo.py`
 - **Transcript processing:** ✓
 - **Summarization:** ✓
 - **Highlights:** ✓ (2 segments extracted)

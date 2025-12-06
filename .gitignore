@@ -26,6 +26,9 @@ htmlcov/
 *.swo
 *~
 
+# Streamlit
+.streamlit/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -44,7 +47,7 @@ temp/
 *.key
 
 # Output files
-output/
+overrides/
 results/
 *.json.bak
 

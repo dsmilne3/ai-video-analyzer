@@ -15,7 +15,6 @@ An AI-powered demo video evaluation system with:
 ## Environment Setup
 
 ### 1. Install System Dependencies
-
 ```bash
 # macOS
 brew install ffmpeg
@@ -29,15 +28,21 @@ sudo yum install ffmpeg
 ```
 
 ### 2. Configure GPU Support (Optional but Recommended)
-
 ```bash
 # Creates the .env file with detected GPU settings
 ./run_gpu.sh --dry-run
 ```
 
 ### 3. Configure API Keys
+Add your API keys to the .env file created in Step 2.
 
-Add your API keys to the .env file created in Step 2
+```bash
+# OpenAI
+echo OPENAI_API_KEY=<your-api-key> >> ./.env
+
+# Anthropic (optional)
+echo ANTHROPIC_API_KEY=<your-api-key> >> ./.env
+```
 
 ## Choose Your Deployment Method
 
@@ -68,8 +73,10 @@ GPU Support in Docker on Mac is not available
 
 ```bash
 # Ensure Docker and docker-compose (or docker compose) are installed
-# Then build the Docker image and start it by simply running:
-docker-compose up --build
+# Then build the Docker image
+docker compose build
+# Then start a container from the image
+docker compose up
 
 # Access at http://localhost:8501
 ```
@@ -143,7 +150,7 @@ Share results with partner
 
 - See `README.md` for full documentation
 - See `IMPLEMENTATION_SUMMARY.md` for technical details
-- Run demo: `python test_data/run_end_to_end_demo.py`
+- Run demo: `python tests/run_end_to_end_demo.py`
 - Check tests: `pytest -q`
 
 ---

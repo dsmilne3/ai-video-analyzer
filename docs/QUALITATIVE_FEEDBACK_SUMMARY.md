@@ -40,7 +40,7 @@
 - `test_generate_feedback_failing_score()`: Validates failing score feedback
 - All tests passing (3/3) ✅
 
-✅ **Demo updated** (`test_data/run_end_to_end_demo.py`)
+✅ **Demo updated** (`tests/run_end_to_end_demo.py`)
 
 - Now includes feedback generation demonstration
 - Shows both strengths and improvements
@@ -152,7 +152,7 @@ When no LLM is available:
    - Tests both passing and failing scenarios
    - Validates structure and content
 
-4. **test_data/run_end_to_end_demo.py** (+21 lines)
+4. **tests/run_end_to_end_demo.py** (+21 lines)
 
    - Added feedback generation to demo
    - Displays formatted output
@@ -202,7 +202,7 @@ tests/test_evaluator.py::test_generate_feedback_failing_score PASSED     [100%]
 ### End-to-End Demo
 
 ```bash
-$ python test_data/run_end_to_end_demo.py
+$ python tests/run_end_to_end_demo.py
 
 # Successfully generates:
 # - Transcript summary
@@ -217,7 +217,7 @@ $ python test_data/run_end_to_end_demo.py
 ### Dependency Check
 
 ```bash
-$ python check_dependencies.py
+$ ./run.sh check
 
 ✅ ALL CHECKS PASSED
 ```

@@ -57,7 +57,7 @@ pytest tests/test_evaluator.py::test_evaluate_sample_transcript -q
 **End-to-End Demo:** ✅ PASSED
 
 ```bash
-python test_data/run_end_to_end_demo.py
+python tests/run_end_to_end_demo.py
 # Successfully demonstrated:
 # - Transcript summarization
 # - Highlight extraction

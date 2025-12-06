@@ -28,10 +28,14 @@ This guide explains how to enable GPU acceleration for faster video processing i
 ### Automatic GPU Detection
 
 ```bash
+# Option 1: Detect GPU and start Docker container
 ./run_gpu.sh
+
+# Option 2: Detect GPU and configure .env without starting Docker
+./run_gpu.sh --dry-run
 ```
 
-This script automatically detects your GPU and configures the Docker container accordingly.
+This script automatically detects your GPU type and count, creates the necessary Docker configuration, and updates your `.env` file with GPU settings.
 
 ### Manual Configuration
 
