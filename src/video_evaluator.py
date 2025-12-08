@@ -506,7 +506,7 @@ class VideoEvaluator:
                 print(f"Warning: Selective MPS placement failed ({e}), using CPU")
             return model
 
-    def __init__(self, rubric_path: str, api_key: Optional[str] = None, provider: AIProvider = AIProvider.OPENAI, verbose: bool = False, enable_vision: bool = False, translate_to_english: bool = False, progress_callback: Optional[Callable[[str], None]] = None):
+    def __init__(self, rubric_path: str, api_key: Optional[str] = None, provider: AIProvider = AIProvider.OPENAI, verbose: bool = False, enable_vision: bool = False, translate_to_english: bool = False, progress_callback: Optional[Callable[[str], None]] = None, transcription_method: str = "local", openai_api_key: Optional[str] = None):
         # Load rubric using the load_rubric function which handles path construction
         self.rubric = load_rubric(rubric_path)
         self.rubric_name = rubric_path
@@ -516,6 +516,9 @@ class VideoEvaluator:
         self.enable_vision = enable_vision
         self.translate_to_english = translate_to_english
         self.progress_callback = progress_callback
+        self.transcription_method = transcription_method
+        # Separate OpenAI API key for transcription (may differ from provider's api_key)
+        self.openai_api_key = openai_api_key if openai_api_key else (api_key if provider == AIProvider.OPENAI else None)
 
         # Create temporary directory for processing
         self.temp_dir = tempfile.mkdtemp(prefix='video_eval_')
@@ -774,18 +777,66 @@ class VideoEvaluator:
                     raise e
         
         try:
-            if self.translate_to_english:
-                # First, detect language without translation
-                temp_res = _transcribe_with_fallback(audio_path)
-                detected_language = temp_res.get('language', 'unknown')
+            if self.verbose:
+                print(f"DEBUG: transcription_method={self.transcription_method}, openai_api_key={'set' if self.openai_api_key else 'NOT SET'}")
+            if self.transcription_method == "openai" and self.openai_api_key:
+                if self.verbose:
+                    print(f"Using OpenAI API for transcription (Task: {'translate' if self.translate_to_english else 'transcribe'})")
                 
-                # If not English, translate
-                if detected_language and detected_language.lower() != 'en':
-                    res = _transcribe_with_fallback(audio_path, task='translate')
-                else:
-                    res = temp_res  # Already in English
+                # Import OpenAI client directly (may not be self.llm if provider is Anthropic)
+                import openai
+                client = openai.OpenAI(api_key=self.openai_api_key)
+                
+                with open(audio_path, "rb") as audio_file:
+                    if self.translate_to_english:
+                        transcript = client.audio.translations.create(
+                            model="whisper-1", 
+                            file=audio_file,
+                            response_format="verbose_json"
+                        )
+                    else:
+                        transcript = client.audio.transcriptions.create(
+                            model="whisper-1", 
+                            file=audio_file,
+                            response_format="verbose_json"
+                        )
+                
+                # Convert OpenAI verbose_json response (object) to dict structure compatible with local whisper
+                # The response object attributes match the keys we need (text, language, segments)
+                res = {
+                    'text': transcript.text,
+                    'language': getattr(transcript, 'language', 'en'),
+                    'segments': [
+                        {
+                            'start': seg.start,
+                            'end': seg.end,
+                            'text': seg.text,
+                            'avg_logprob': seg.avg_logprob,
+                            'compression_ratio': seg.compression_ratio,
+                            'no_speech_prob': seg.no_speech_prob
+                        } for seg in transcript.segments
+                    ]
+                }
+                
             else:
-                res = _transcribe_with_fallback(audio_path)
+                # Use local whisper model
+                if self.verbose:
+                    if self.transcription_method == "openai" and not self.openai_api_key:
+                        print("OpenAI API transcription requested but no API key available. Falling back to local Whisper.")
+                    else:
+                        print("Using local Whisper for transcription")
+                if self.translate_to_english:
+                    # First, detect language without translation
+                    temp_res = _transcribe_with_fallback(audio_path)
+                    detected_language = temp_res.get('language', 'unknown')
+                    
+                    # If not English, translate
+                    if detected_language and detected_language.lower() != 'en':
+                        res = _transcribe_with_fallback(audio_path, task='translate')
+                    else:
+                        res = temp_res  # Already in English
+                else:
+                    res = _transcribe_with_fallback(audio_path)
         except Exception as e:
             if self.verbose:
                 print(f"Error during transcription: {e}")
@@ -2370,7 +2421,7 @@ Return strictly parseable JSON with this exact structure:
 
             # Transcribe with timestamps
             device_display = self._get_device_display()
-            self._report_progress(f"🎤 Transcribing audio with Whisper {self.whisper_model_name} model on {device_display}...")
+            self._report_progress(f"🎤 Transcribing audio with Whisper ({self.transcription_method}) {self.whisper_model_name} model on {device_display}...")
             transcription = self.transcribe_with_timestamps(audio_path)
 
             # Pick highlights

@@ -6,33 +6,37 @@ This guide explains how to run the AI Video Analyzer using Docker for easy deplo
 
 - Docker installed on your system
 - docker-compose installed (usually comes with Docker Desktop)
-- At least 8GB RAM recommended for Whisper model loading
+- At least 8GB RAM recommended for Whisper model loading (or use remote execution from OpenAI)
 - **GPU Support**: Optional GPU acceleration available for NVIDIA/AMD GPUs (automatic detection)
 
 ## Quick Start
 
-1. **Clone the repository:**
-
-   ```bash
-   git clone <repository-url>
-   cd ai-video-analyzer
-   ```
-
-2. **Set up environment variables (optional):**
+1. **Set up environment variables:**
 
    ```bash
    cp .env.example .env
    # Edit .env with your API keys
    ```
 
+2. **For significantly faster processing on Whisper locally, enable GPU acceleration: (optional)**
+
+```bash
+# Auto-detect GPU and configure Docker
+./run_gpu.sh
+```
+
+Refer to the [GPU docs](./GPU_README.md) for more details
+
 3. **Build and run with Docker Compose:**
 
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 4. **Access the application:**
    Open your browser and go to `http://localhost:8501`
+
+---
 
 ## Detailed Usage
 
