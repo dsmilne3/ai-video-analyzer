@@ -74,15 +74,15 @@ def test_chunking_fix():
         if has_real_scores:
             print("✅ SUCCESS: Got real AI evaluation scores (not fallback)")
             print(f"📊 Overall score: {result.get('overall', {}).get('total_points', 'N/A')}/{result.get('overall', {}).get('max_points', 'N/A')}")
-            return True
+            assert True, "Real AI scores received"
         else:
             print("❌ FAILED: Still getting fallback heuristic scores")
             print("💡 This means the chunking evaluation is still failing despite API success")
-            return False
+            assert False, "Still getting fallback heuristic scores"
 
     except Exception as e:
         print(f"❌ ERROR: Evaluation failed with exception: {e}")
-        return False
+        assert False, f"Evaluation failed with exception: {e}"
 
 if __name__ == "__main__":
     success = test_chunking_fix()
