@@ -150,9 +150,7 @@ Share results with partner
 
 - See `README.md` for full documentation
 - See `IMPLEMENTATION_SUMMARY.md` for technical details
-- Testing guide: [docs/TESTING.md](docs/TESTING.md)
 - Run demo: `python tests/run_end_to_end_demo.py`
 - Check tests: `pytest -q`
-- Optional browser E2E: see [docs/TESTING.md](docs/TESTING.md#browser-e2e-playwright)
 
 ---
