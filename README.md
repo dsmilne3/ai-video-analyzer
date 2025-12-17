@@ -58,6 +58,11 @@ Automatically evaluate demo videos using AI. For initial transcription and trans
 
 ## Setup
 
+### Testing Summary
+- Full guide: see [docs/TESTING.md](docs/TESTING.md)
+- Unit/integration: `./run.sh test`
+- Browser E2E: `venv/bin/python -m pytest -m e2e tests/e2e -v` (requires Playwright; see [docs/TESTING.md](docs/TESTING.md#browser-e2e-playwright))
+
 ### Prerequisites
 
 #### 1. Install System Dependencies
