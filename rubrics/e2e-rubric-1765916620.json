@@ -1,0 +1,58 @@
+{
+  "rubric_id": "e2e-rubric-1765916620",
+  "version": "1.0",
+  "status": "current",
+  "name": "e2e-rubric-1765916620",
+  "description": "",
+  "categories": [
+    {
+      "category_id": "e2e-rubric-1765916620_cat-4GtS",
+      "label": "Category 01",
+      "weight": 0.5,
+      "max_points": 10,
+      "criteria": [
+        {
+          "criterion_id": "e2e-rubric-1765916620_e2e-rubric-1765916620_cat-4GtS_crit-wO5C",
+          "label": "Criterion 01",
+          "desc": "",
+          "max_points": 5
+        },
+        {
+          "criterion_id": "e2e-rubric-1765916620_e2e-rubric-1765916620_cat-4GtS_crit-cwoz",
+          "label": "Criterion 02",
+          "desc": "",
+          "max_points": 5
+        }
+      ]
+    },
+    {
+      "category_id": "e2e-rubric-1765916620_cat-0LGc",
+      "label": "Category 02",
+      "weight": 0.5,
+      "max_points": 10,
+      "criteria": [
+        {
+          "criterion_id": "e2e-rubric-1765916620_e2e-rubric-1765916620_cat-0LGc_crit-G3Fs",
+          "label": "Criterion 01",
+          "desc": "",
+          "max_points": 5
+        },
+        {
+          "criterion_id": "e2e-rubric-1765916620_e2e-rubric-1765916620_cat-0LGc_crit-e8bA",
+          "label": "Criterion 02",
+          "desc": "",
+          "max_points": 5
+        }
+      ]
+    }
+  ],
+  "scale": {
+    "min": 0,
+    "max": 20
+  },
+  "overall_method": "total_points",
+  "thresholds": {
+    "pass": 14,
+    "revise": 11
+  }
+}

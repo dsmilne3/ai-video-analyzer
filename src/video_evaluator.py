@@ -1325,6 +1325,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     text = resp.choices[0].message.content
                     if text:
                         result = json.loads(text)
+                        # Clamp and recompute this category's totals
+                        result = self._normalize_new_format_result(result)
                         return result
             except Exception as e:
                 raise e
@@ -1339,7 +1341,9 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                         messages=[{"role": "user", "content": prompt}]
                     )
                     result = json.loads(resp.content[0].text)
-                return result
+                    # Clamp and recompute this category's totals
+                    result = self._normalize_new_format_result(result)
+                    return result
             except Exception as e:
                 raise e
         
@@ -1462,7 +1466,7 @@ Categories and Criteria to evaluate:
 Total possible points: {sum(cat['max_points'] for cat in self.rubric['categories'])}
 
 For each criterion, provide:
-- score: Your evaluation score (0-{max(cat['max_points'] for cat in self.rubric['categories'])})
+    - score: Your evaluation score (0 up to that criterion's max_points listed above)
 - confidence: How confident you are in this score (1-10, where 10 means very confident)
 - note: Brief justification for your score
 
@@ -1506,6 +1510,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     text = resp.choices[0].message.content
                     if text:
                         result = json.loads(text)
+                        # Normalize/clamp scores to rubric-defined max points
+                        result = self._normalize_new_format_result(result)
                         if self.verbose:
                             print(f"✓ OpenAI evaluation successful")
                         return result
@@ -1526,6 +1532,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                         messages=[{"role": "user", "content": prompt}]
                     )
                     result = json.loads(resp.content[0].text)
+                    # Normalize/clamp scores to rubric-defined max points
+                    result = self._normalize_new_format_result(result)
                     if self.verbose:
                         print(f"✓ Anthropic evaluation successful")
                     return result
@@ -1621,16 +1629,28 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
             for criterion_id, scores_list in category_scores.items():
                 # Average scores across chunks
                 avg_score = sum(s['score'] for s in scores_list) / len(scores_list)
+                # Clamp to rubric max_points for this criterion
+                crit_max = 0
+                for cat in self.rubric['categories']:
+                    for criterion in cat['criteria']:
+                        if criterion['criterion_id'] == criterion_id:
+                            crit_max = criterion.get('max_points', 0)
+                            break
+                    if crit_max:
+                        break
+                clamped_score = max(0, min(round(avg_score), crit_max))
                 max_confidence = max(s['confidence'] for s in scores_list)
                 combined_notes = ' | '.join([s['note'] for s in scores_list if s['note']])
                 
                 aggregated_category_scores[criterion_id] = {
-                    "score": round(avg_score),
+                    "score": clamped_score,
                     "confidence": max_confidence,
                     "note": f"Aggregated from {len(scores_list)} chunks: {combined_notes}"
                 }
-                category_points += round(avg_score)
+                category_points += clamped_score
             
+            # Clamp category total to max
+            category_points = max(0, min(category_points, category['max_points']))
             category_results[category['category_id']] = {
                 "scores": aggregated_category_scores,
                 "category": {
@@ -1697,7 +1717,7 @@ Criteria to evaluate:
 {criteria_text}
 
 For each criterion, provide:
-- score: Your evaluation score (0-{category['max_points']})
+- score: Your evaluation score (0 up to that criterion's max_points listed above)
 - confidence: How confident you are in this score (1-10, where 10 means very confident)
 - note: Brief justification for your score
 
@@ -1726,6 +1746,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     text = resp.choices[0].message.content
                     if text:
                         result = json.loads(text)
+                        # Clamp scores for this category and recompute category totals
+                        result = self._normalize_new_format_result(result)
                         return result
             except Exception as e:
                 if self.verbose:
@@ -1746,6 +1768,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                         if text:
                             try:
                                 result = json.loads(text)
+                                # Clamp scores for this category and recompute category totals
+                                result = self._normalize_new_format_result(result)
                                 return result
                             except json.JSONDecodeError as e:
                                 if self.verbose:
@@ -1807,7 +1831,7 @@ Categories and Criteria to evaluate:
 Total possible points: {sum(cat['max_points'] for cat in self.rubric['categories'])}
 
 For each criterion, provide:
-- score: Your evaluation score (0-{max(cat['max_points'] for cat in self.rubric['categories'])})
+- score: Your evaluation score (0 up to that criterion's max_points listed above)
 - confidence: How confident you are in this score (1-10, where 10 means very confident)
 - note: Brief justification for your score
 
@@ -1850,6 +1874,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     text = resp.choices[0].message.content
                     if text:
                         result = json.loads(text)
+                        # Normalize/clamp scores to rubric-defined max points
+                        result = self._normalize_new_format_result(result)
                         return result
             except Exception as e:
                 if self.verbose:
@@ -1866,6 +1892,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                         messages=[{"role": "user", "content": prompt}]
                     )
                     result = json.loads(resp.content[0].text)
+                    # Normalize/clamp scores to rubric-defined max points
+                    result = self._normalize_new_format_result(result)
                     return result
             except Exception as e:
                 if self.verbose:
@@ -1905,13 +1933,23 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
             if scores_for_criterion:
                 # Average score across chunks
                 avg_score = sum(scores_for_criterion) / len(scores_for_criterion)
+                # Clamp to rubric max_points for this criterion
+                crit_max = 0
+                for category in self.rubric['categories']:
+                    for criterion in category['criteria']:
+                        if criterion['criterion_id'] == criterion_id:
+                            crit_max = criterion.get('max_points', 0)
+                            break
+                    if crit_max:
+                        break
+                clamped_score = max(0, min(round(avg_score), crit_max))
                 # Use the highest confidence as representative
                 max_confidence = max(confidences_for_criterion) if confidences_for_criterion else 5
                 # Combine notes
                 combined_notes = ' | '.join([note for note in notes_for_criterion if note])
                 
                 aggregated_scores[criterion_id] = {
-                    "score": round(avg_score),
+                    "score": clamped_score,
                     "confidence": max_confidence,
                     "note": f"Aggregated from {len(scores_for_criterion)} chunks: {combined_notes}"
                 }
@@ -1929,10 +1967,14 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
             category_points = 0
             total_max_points = category['max_points']
             
-            # Sum up points for all criteria in this category
+            # Sum clamped points for all criteria in this category
             for criterion in category['criteria']:
                 if criterion['criterion_id'] in aggregated_scores:
-                    category_points += aggregated_scores[criterion['criterion_id']]['score']
+                    score_val = aggregated_scores[criterion['criterion_id']]['score']
+                    # Criterion scores are already clamped; just sum
+                    category_points += score_val
+            # Clamp category points to its max
+            category_points = max(0, min(category_points, total_max_points))
             
             categories[category['category_id']] = {
                 "points": category_points,
@@ -2074,7 +2116,7 @@ Criteria to evaluate:
 {criteria_text}
 
 For each criterion, provide:
-- score: Your evaluation score (0-{category['max_points']})
+- score: Your evaluation score (0 up to that criterion's max_points listed above)
 - confidence: How confident you are in this score (1-10, where 10 means very confident)
 - note: Brief justification for your score
 
@@ -2108,6 +2150,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     text = resp.choices[0].message.content
                     if text:
                         result = json.loads(text)
+                        # Clamp scores for this category and recompute category totals
+                        result = self._normalize_new_format_result(result)
                         return result
             except Exception as e:
                 if self.verbose:
@@ -2124,6 +2168,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                         messages=[{"role": "user", "content": prompt}]
                     )
                     result = json.loads(resp.content[0].text)
+                    # Clamp scores for this category and recompute category totals
+                    result = self._normalize_new_format_result(result)
                     return result
             except Exception as e:
                 if self.verbose:
@@ -2196,6 +2242,87 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
             "categories": categories,
             "short_summary": "Auto-generated conservative evaluation"
         }
+
+    def _normalize_new_format_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Clamp criterion scores to rubric-defined max points and recompute category/overall totals.
+
+        This guards against LLM outputs that exceed allowed maxima, ensuring percentages never exceed 100%.
+        """
+        try:
+            # Build maps for criterion max and category membership
+            crit_max: Dict[str, int] = {}
+            crit_to_cat: Dict[str, str] = {}
+            cat_max: Dict[str, int] = {}
+            for category in self.rubric.get('categories', []):
+                cat_id = category.get('category_id')
+                cat_max[cat_id] = category.get('max_points', 0)
+                for criterion in category.get('criteria', []):
+                    cid = criterion.get('criterion_id')
+                    crit_max[cid] = criterion.get('max_points', 0)
+                    crit_to_cat[cid] = cat_id
+
+            # Clamp scores per criterion
+            scores = result.get('scores', {}) or {}
+            for cid, data in list(scores.items()):
+                raw = data.get('score', 0)
+                m = crit_max.get(cid, 0)
+                clamped = max(0, min(int(round(raw)), m))
+                data['score'] = clamped
+                # Ensure confidence is within 1-10 if present
+                if 'confidence' in data:
+                    conf = data.get('confidence', 5)
+                    data['confidence'] = max(1, min(int(round(conf)), 10))
+                scores[cid] = data
+
+            # Recompute categories from clamped scores
+            categories: Dict[str, Dict[str, float]] = {}
+            for cat_id, m in cat_max.items():
+                categories[cat_id] = {"points": 0, "max_points": m, "percentage": 0.0}
+            for cid, data in scores.items():
+                cat_id = crit_to_cat.get(cid)
+                if cat_id in categories:
+                    categories[cat_id]["points"] += data.get('score', 0)
+            # Clamp category totals and compute percentages
+            for cat_id, cat_data in categories.items():
+                points = int(cat_data["points"])
+                m = int(cat_data["max_points"])
+                points = max(0, min(points, m))
+                cat_data["points"] = points
+                cat_data["percentage"] = (points / m) * 100 if m > 0 else 0.0
+
+            # Compute overall totals
+            total_points = sum(cat["points"] for cat in categories.values())
+            max_points = sum(cat["max_points"] for cat in categories.values())
+            percentage = (total_points / max_points) * 100 if max_points > 0 else 0.0
+
+            # Determine pass_status using point-based thresholds
+            pass_threshold = self.rubric.get('thresholds', {}).get('pass')
+            revise_threshold = self.rubric.get('thresholds', {}).get('revise')
+            pass_status = result.get('overall', {}).get('pass_status')
+            if isinstance(pass_threshold, (int, float)) and isinstance(revise_threshold, (int, float)):
+                if total_points >= pass_threshold:
+                    pass_status = 'pass'
+                elif total_points >= revise_threshold:
+                    pass_status = 'revise'
+                else:
+                    pass_status = 'fail'
+
+            # Write back normalized structure
+            result['scores'] = scores
+            result['categories'] = categories
+            overall = result.get('overall', {}) or {}
+            overall.update({
+                'total_points': int(total_points),
+                'max_points': int(max_points),
+                'percentage': round(percentage, 1),
+                'pass_status': pass_status or overall.get('pass_status', 'fail')
+            })
+            result['overall'] = overall
+        except Exception:
+            # Be conservative: don't break pipeline if normalization fails
+            if self.verbose:
+                print("Warning: Failed to normalize evaluation result; proceeding with raw result.")
+        return result
 
     def generate_qualitative_feedback(self, transcript: str, evaluation: Dict[str, Any], visual_analysis: Optional[str] = None, segments: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Generate qualitative feedback with 2 strengths and 2 areas for improvement.
