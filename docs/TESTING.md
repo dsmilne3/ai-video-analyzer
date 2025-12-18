@@ -72,6 +72,7 @@ pytest tests/test_comprehensive.py::test_validate_rubric_valid_old_format -v
 - **`tests/integration/test_error_paths.py`**: Partial pipeline failures, dependency guidance
 - **`tests/integration/test_ui_smoke.py`**: Headless Streamlit app startup verification
 - **`tests/integration/test_provider_live.py`**: Opt-in live provider test (requires API keys)
+- **`tests/integration/test_docker_smoke.py`**: Docker deployment validation (requires Docker daemon)
 - **`tests/run_end_to_end_demo.py`**: Full pipeline with real transcription and API calls
 
 ## Test Coverage Areas
@@ -134,6 +135,8 @@ Tests are organized using pytest markers for easy filtering:
 - **`integration`**: Slower tests with real dependencies (ffmpeg, yt-dlp, app startup)
 - **`ui_smoke`**: Lightweight UI smoke tests for Streamlit
 - **`provider_live`**: Opt-in tests requiring live API keys
+- **`e2e`**: End-to-end browser tests (slow, requires Playwright)
+- **`docker`**: Docker deployment smoke tests (requires Docker daemon)
 
 ### Running By Marker
 
@@ -151,8 +154,14 @@ pytest -m "integration and ui_smoke" -v
 export OPENAI_API_KEY=sk-...  # or ANTHROPIC_API_KEY
 pytest -m "integration and provider_live" -v
 
+# E2E browser tests
+pytest -m e2e tests/e2e -v
+
+# Docker smoke tests (requires Docker daemon running)
+pytest -m docker -v
+
 # Exclude slow tests
-pytest -m "not integration and not provider_live" -v
+pytest -m "not integration and not provider_live and not e2e and not docker" -v
 ```
 
 ## Running Specific Test Categories
