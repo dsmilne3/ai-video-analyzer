@@ -97,18 +97,21 @@ def test_docker_compose_build(docker_available):
 
 
 def test_docker_container_starts_and_serves(docker_available):
-    """Test that container starts and Streamlit serves on expected port."""
+    """Test that container starts and Streamlit serves on port 8501."""
     container_name = 'ai-video-analyzer-smoke-test'
-    test_port = _find_free_port()  # Dynamically find free port
     
     # Clean up any existing container
     subprocess.run(['docker', 'rm', '-f', container_name], capture_output=True)
     
-    # Start container
+    # Check if port 8501 is available; use fallback if not
+    if _is_port_open(STREAMLIT_PORT):
+        pytest.skip(f"Port {STREAMLIT_PORT} already in use (likely Streamlit app running). Stop it to test Docker deployment.")
+    
+    # Start container with standard port mapping (production scenario)
     cmd = [
         'docker', 'run', '-d',
         '--name', container_name,
-        '-p', f'{test_port}:{STREAMLIT_PORT}',  # Map host:container
+        '-p', f'{STREAMLIT_PORT}:{STREAMLIT_PORT}',  # Standard mapping
         'ai-video-analyzer-test'
     ]
     
@@ -120,7 +123,7 @@ def test_docker_container_starts_and_serves(docker_available):
         # Wait for Streamlit to be ready (max 60s)
         deadline = time.time() + 60
         while time.time() < deadline:
-            if _is_port_open(test_port):
+            if _is_port_open(STREAMLIT_PORT):
                 break
             time.sleep(1)
         else:
@@ -134,7 +137,7 @@ def test_docker_container_starts_and_serves(docker_available):
             pytest.fail(f"Container did not start serving within 60s. Logs:\n{logs.stdout}\n{logs.stderr}")
         
         # Verify port is accessible
-        assert _is_port_open(test_port), "Streamlit port not accessible"
+        assert _is_port_open(STREAMLIT_PORT), f"Streamlit not accessible on port {STREAMLIT_PORT}"
         
     finally:
         # Cleanup
