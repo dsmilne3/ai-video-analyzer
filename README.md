@@ -1,4 +1,5 @@
 # Demo Video Analyzer
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Automatically evaluate demo videos using AI. For initial transcription and translation tasks, the project uses a **local-first pipeline** for cost control, with optional cloud API escalation for using different models. The user's choice of LLM provider (OpenAI or Anthropic) is then used to evaluate the video content against a selected rubric and provide quantitative feedback to the submitter.
 
@@ -375,4 +376,4 @@ See TESTING.md in the `docs/` directory.
 
 ## License
 
-See LICENSE file for details.
+See [LICENSE](LICENSE) for details.
