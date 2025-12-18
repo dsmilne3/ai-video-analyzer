@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
-    branches: [ main ]
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Cache pip
         uses: actions/cache@v4
@@ -46,6 +50,6 @@ jobs:
 
       - name: Run tests (skip docker/e2e/provider-live/ui-smoke)
         env:
-          PYTHONUNBUFFERED: '1'
+          PYTHONUNBUFFERED: "1"
         run: |
           pytest -q -m "not docker and not e2e and not provider_live and not ui_smoke"
