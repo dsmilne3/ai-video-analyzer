@@ -51,5 +51,6 @@ jobs:
       - name: Run tests (skip docker/e2e/provider-live/ui-smoke)
         env:
           PYTHONUNBUFFERED: "1"
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           pytest -q -m "not docker and not e2e and not provider_live and not ui_smoke"
