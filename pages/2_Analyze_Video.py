@@ -12,6 +12,12 @@ import json
 from pathlib import Path
 from datetime import datetime
 
+st.set_page_config(
+    page_title="Analyze Video - AI Video Analyzer",
+    page_icon="🎬",
+    layout="wide"
+)
+
 # Check for dependencies
 try:
     from src.video_evaluator import VideoEvaluator, AIProvider, list_available_rubrics, save_results
@@ -26,6 +32,28 @@ except ImportError as e:
     st.stop()
 
 st.title('Demo Video Analyzer')
+
+# Configuration management for default rubric
+CONFIG_FILE = Path(__file__).parent.parent / ".streamlit_config.json"
+
+def load_config():
+    """Load configuration from file."""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+def save_config(config):
+    """Save configuration to file."""
+    try:
+        CONFIG_FILE.parent.mkdir(exist_ok=True)
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        st.error(f"Failed to save configuration: {e}")
 
 # Get available rubrics (refreshed on each page load)
 available_rubrics = list_available_rubrics()
@@ -281,7 +309,33 @@ if 'start_analysis' not in st.session_state:
 can_analyze = (uploaded is not None or (video_url and video_url.strip() and url_is_valid)) and first_name.strip() and last_name.strip() and partner_name.strip()
 
 # Processing options
-st.caption("⚙️ Processing Options")
+st.subheader("⚙️ Processing Options")
+
+# Determine API key validity for providers
+openai_valid = bool(openai_key and openai_key.startswith('sk-') and not openai_key.endswith('your-openai-key-here'))
+anthropic_valid = bool(anthropic_key and anthropic_key.startswith('sk-ant-') and not anthropic_key.endswith('your-anthropic-key-here'))
+
+# Gate OpenAI API option on valid OpenAI key (only OpenAI has Whisper API)
+openai_api_enabled = openai_valid
+
+# Build transcription method options: show OpenAI Whisper API only when OpenAI key is valid
+method_options = ["Local Whisper model"] + (["OpenAI Whisper API"] if openai_api_enabled else [])
+
+# Show header
+st.text("Transcription Method")
+
+# Inform user how to enable OpenAI API when key isn't loaded (before the radio)
+if not openai_api_enabled:
+    st.caption("Load a valid OpenAI API key to enable remote transcription.")
+
+transcription_method = st.radio(
+    "Transcription Method",
+    options=method_options,
+    help="Use Local Whisper model for machines w/ GPUs - slow for CPU only; OpenAI Whisper API for CPU only machines - incurs cost",
+    horizontal=True,
+    label_visibility="collapsed"
+)
+
 translate = st.checkbox('Translate to English', value=True, help='Automatically translate non-English audio to English using Whisper')
 vision = st.checkbox('Enable visual alignment checks')
 
@@ -312,6 +366,9 @@ if st.session_state.start_analysis:
         prov = AIProvider.OPENAI if provider == 'openai' else AIProvider.ANTHROPIC
         rubric_filename = rubric_options[selected_rubric_name]
         
+        # Map friendly name to internal value - "OpenAI Whisper API" uses openai for transcription, "Local Whisper model" uses local
+        method_internal = "openai" if transcription_method == "OpenAI Whisper API" else "local"
+        
         # Progress callback that prints to terminal (stdout)
         def progress_callback(message: str):
             print(message, flush=True)
@@ -331,6 +388,8 @@ if st.session_state.start_analysis:
                 # Extract model and device info from message like "🎤 Transcribing audio with Whisper base model on CPU..."
                 if "Whisper" in message and "model" in message:
                     progress_placeholder.write(f"⏳ **Step 2/4:** {message.replace('🎤 ', '')}")
+                elif "OpenAI API" in message:
+                    progress_placeholder.write("⏳ **Step 2/4:** Transcribing with OpenAI API...")
                 else:
                     progress_placeholder.write("⏳ **Step 2/4:** Transcribing audio with Whisper model...")
             elif "Analyzing video frames" in message:
@@ -347,9 +406,11 @@ if st.session_state.start_analysis:
             api_key=openai_key if provider == 'openai' else anthropic_key,
             provider=prov, 
             enable_vision=vision, 
-            verbose=False,  # Back to normal - chunking now works properly
+            verbose=True,  # Back to normal - chunking now works properly
             progress_callback=ui_progress_callback,
-            translate_to_english=translate
+            translate_to_english=translate,
+            transcription_method=method_internal,
+            openai_api_key=openai_key  # Always pass OpenAI key for Whisper API
         )
         
         with status_placeholder.container():
@@ -623,22 +684,30 @@ if st.session_state.analysis_results is not None:
                 if category_confidences:
                     avg_confidence = sum(category_confidences) / len(category_confidences)
                 
-                # Determine confidence display
+                # Determine confidence text label (High/Medium/Low)
                 if avg_confidence is not None:
                     if avg_confidence >= 8:
-                        confidence_display = f"🟢 {avg_confidence:.1f}/10"
+                        confidence_display = f"High ({avg_confidence:.1f}/10)"
                     elif avg_confidence >= 6:
-                        confidence_display = f"🟡 {avg_confidence:.1f}/10"
+                        confidence_display = f"Medium ({avg_confidence:.1f}/10)"
                     else:
-                        confidence_display = f"🔴 {avg_confidence:.1f}/10"
+                        confidence_display = f"Low ({avg_confidence:.1f}/10)"
                 else:
                     confidence_display = "N/A"
+                
+                # Determine score stoplight based on percentage
+                if percentage >= 80:
+                    score_icon = "🟢"
+                elif percentage >= 60:
+                    score_icon = "🟡"
+                else:
+                    score_icon = "🔴"
                 
                 col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
                 with col1:
                     st.markdown(f"**{cat_name}**")
                 with col2:
-                    st.markdown(f"**{points}/{max_points}** ({percentage:.1f}%)")
+                    st.markdown(f"{score_icon} **{points}/{max_points}** ({percentage:.1f}%)")
                 with col3:
                     st.markdown(f"**{weight:.1f}**")
                 with col4:
