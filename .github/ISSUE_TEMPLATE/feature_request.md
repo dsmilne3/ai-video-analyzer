@@ -26,5 +26,5 @@ Add any other context or screenshots here.
 
 **Checklist**
 - [ ] Clear acceptance criteria
-- [ ] Tests and docs planed
+- [ ] Tests planned and docs updates identified
 - [ ] Minimal dependency impact
