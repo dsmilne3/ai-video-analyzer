@@ -2446,20 +2446,18 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
         )
         top_2 = strengths_sorted[:2]
         
-        # Build summaries with impact context
+        # Build summaries with evaluator context (hide point details from final feedback)
         top_2_summary = "\n".join([
-            f"- {criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())}: "
-            f"Score {item['score']}/{item['max_score']} "
-            f"(Weight: {item['weight']*100:.0f}%, Impact: {item['strength_impact']:.2f} contribution points) - "
-            f"{item['score_data'].get('note', '')}"
+            f"- {criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())} "
+            f"(High-weight criterion: {item['weight']*100:.0f}% of rubric): "
+            f"{item['score_data'].get('note', 'Strong performance')}"
             for item in top_2
         ])
         
         bottom_2_summary = "\n".join([
-            f"- {criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())}: "
-            f"Score {item['score']}/{item['max_score']} "
-            f"(Weight: {item['weight']*100:.0f}%, Potential gain: {item['improvement_impact']:.2f} points) - "
-            f"{item['score_data'].get('note', '')}"
+            f"- {criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())} "
+            f"(High-weight criterion: {item['weight']*100:.0f}% of rubric): "
+            f"{item['score_data'].get('note', 'Needs improvement')}"
             for item in bottom_2
         ])
         
@@ -2495,8 +2493,8 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
         prompt = f"""
 You are providing constructive feedback directly to a demo video submitter. Based on the evaluation below, provide:
 
-1. Two specific strengths focusing on your HIGHEST IMPACT scoring areas (score × rubric weight) - 2-3 sentences each
-2. Two specific areas for improvement focusing on your HIGHEST IMPACT improvement opportunities (gap × rubric weight) - 2-3 sentences each with actionable suggestions
+1. Two specific strengths focusing on the MOST IMPORTANT areas where they performed well - 2-3 sentences each
+2. Two specific areas for improvement focusing on the MOST IMPORTANT areas for growth - 2-3 sentences each with actionable suggestions
 
 CRITICAL: Every strength and improvement MUST include:
 - Specific quote or description from the demo
@@ -2504,21 +2502,23 @@ CRITICAL: Every strength and improvement MUST include:
 - Clear connection to the rubric criterion
 - Concrete, actionable advice (for improvements)
 
+Avoid mentioning scores, points, or percentages. Focus on qualitative observations and actionable guidance.
+
 When possible, reference specific timing or sections of the demo to make feedback more actionable.
 
 Tone: {"Congratulatory and encouraging - you passed!" if is_passing else "Supportive and collaborative - help you improve without being discouraging"}
 
-TOP 2 HIGHEST-IMPACT STRENGTHS (prioritized by rubric weight):
+TOP 2 HIGHEST-PRIORITY STRENGTHS (most important areas of strong performance):
 {top_2_summary}
 
-These are your strongest areas that contribute most to your overall score. Highlight what specific actions or techniques made these successful.
+These are the most important areas where strong performance was demonstrated. Highlight what specific actions or techniques made these successful.
 
-TOP 2 HIGHEST-IMPACT IMPROVEMENT OPPORTUNITIES (prioritized by potential score gain × rubric weight):
+TOP 2 HIGHEST-PRIORITY IMPROVEMENT OPPORTUNITIES (most important areas for growth):
 {bottom_2_summary}
 
-Focus your improvement feedback on these areas as they offer the most score improvement potential given their rubric weight and current gaps.
+Focus your improvement feedback on these critical areas as they represent the most important opportunities for development.
 
-Overall score: {overall_score_display} - Status: {pass_status.upper()}
+Overall Status: {pass_status.upper()}
 
 Transcript excerpt:
 {transcript_excerpt}{time_references}
@@ -2529,12 +2529,12 @@ Visual analysis:
 Return strictly parseable JSON with this exact structure:
 {{
     "strengths": [
-        {{"title": "<name of highest-impact strength criterion>", "description": "2-3 sentence explanation with specific examples from the demo, including timestamps when possible"}},
-        {{"title": "<name of 2nd highest-impact strength criterion>", "description": "2-3 sentence explanation with specific examples from the demo, including timestamps when possible"}}
+        {{"title": "<name of highest-priority strength criterion>", "description": "2-3 sentence explanation with specific examples from the demo, including timestamps when possible. Focus on what was done well and why it matters."}},
+        {{"title": "<name of 2nd highest-priority strength criterion>", "description": "2-3 sentence explanation with specific examples from the demo, including timestamps when possible. Focus on what was done well and why it matters."}}
     ],
     "improvements": [
-        {{"title": "<name of highest-impact improvement criterion>", "description": "2-3 sentence explanation with specific, actionable advice. Include what to change and how to change it."}},
-        {{"title": "<name of 2nd highest-impact improvement criterion>", "description": "2-3 sentence explanation with specific, actionable advice. Include what to change and how to change it."}}
+        {{"title": "<name of highest-priority improvement criterion>", "description": "2-3 sentence explanation with specific, actionable advice. Include what to change, how to change it, and why it matters. Avoid mentioning numerical scores."}},
+        {{"title": "<name of 2nd highest-priority improvement criterion>", "description": "2-3 sentence explanation with specific, actionable advice. Include what to change, how to change it, and why it matters. Avoid mentioning numerical scores."}}
     ]
 }}
 """
@@ -2580,7 +2580,7 @@ Return strictly parseable JSON with this exact structure:
                     print(f"Warning: Anthropic API call failed for feedback ({e}). Using fallback.")
                 pass
         
-        # Fallback: Generate basic feedback based on impact scores
+        # Fallback: Generate basic feedback based on impact scores (without exposing point details)
         strengths = []
         improvements = []
         
@@ -2589,14 +2589,14 @@ Return strictly parseable JSON with this exact structure:
             criterion_label = criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())
             strengths.append({
                 "title": criterion_label,
-                "description": f"You scored {item['score']}/{item['max_score']} in this high-weight area (impact: {item['strength_impact']:.2f} points). {item['score_data'].get('note', 'Strong performance in this area.')}"
+                "description": f"{item['score_data'].get('note', 'Strong performance in this critical area of the rubric.')}"
             })
         
         for i, item in enumerate(bottom_2):
             criterion_label = criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())
             improvements.append({
                 "title": criterion_label,
-                "description": f"You scored {item['score']}/{item['max_score']} in this high-weight area. Improving here could gain you up to {item['improvement_impact']:.2f} points. {item['score_data'].get('note', 'Consider focusing on improving this aspect.')}"
+                "description": f"This is an important area for growth. {item['score_data'].get('note', 'Consider focusing on strengthening this aspect of your demo.')}"
             })
         
         return {
