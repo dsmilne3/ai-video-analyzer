@@ -2333,6 +2333,7 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
     def generate_qualitative_feedback(self, transcript: str, evaluation: Dict[str, Any], visual_analysis: Optional[str] = None, segments: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Generate qualitative feedback with 2 strengths and 2 areas for improvement.
         Tone adjusts based on pass/fail status.
+        Uses impact-based sorting to prioritize feedback based on rubric weights.
         
         Args:
             transcript: The demo transcript text
@@ -2352,25 +2353,115 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
         # Extract scores for context
         scores = evaluation.get('scores', {})
         
-        # Create mapping from criterion_id to label
+        # Create mappings from criterion_id to label, weight, and max_score
         criterion_labels = {}
+        criterion_weights = {}
+        criterion_max_scores = {}
+        
         if "categories" in self.rubric:
-            # New format
+            # New format - calculate effective weights from category weights
             for category in self.rubric["categories"]:
+                category_weight = category.get("weight", 0)
+                category_max = category.get("max_points", 0)
                 for criterion in category["criteria"]:
-                    criterion_labels[criterion["criterion_id"]] = criterion["label"]
+                    crit_id = criterion["criterion_id"]
+                    criterion_labels[crit_id] = criterion["label"]
+                    criterion_max_scores[crit_id] = criterion.get("max_points", 0)
+                    # Effective weight = category_weight * (criterion_max / category_max)
+                    if category_max > 0:
+                        criterion_weights[crit_id] = category_weight * (criterion["max_points"] / category_max)
+                    else:
+                        criterion_weights[crit_id] = 0
         else:
             # Old format
             for criterion in self.rubric["criteria"]:
-                criterion_labels[criterion["id"]] = criterion["label"]
+                crit_id = criterion["id"]
+                criterion_labels[crit_id] = criterion["label"]
+                criterion_weights[crit_id] = criterion.get("weight", 0)
+                criterion_max_scores[crit_id] = self.rubric.get("scale", {}).get("max", 10)
         
-        # Find highest and lowest scoring criteria
-        sorted_scores = sorted(scores.items(), key=lambda x: x[1].get('score', 0), reverse=True)
-        top_2 = sorted_scores[:2]
-        bottom_2 = sorted_scores[-2:]
+        # Determine pass threshold for gap calculation
+        pass_threshold = self.rubric.get('thresholds', {}).get('pass', 0)
         
-        top_2_summary = "\n".join([f"- {criterion_labels.get(k, k.replace('_', ' ').title())}: {v.get('score', 'N/A')}/10 - {v.get('note', '')}" for k, v in top_2])
-        bottom_2_summary = "\n".join([f"- {criterion_labels.get(k, k.replace('_', ' ').title())}: {v.get('score', 'N/A')}/10 - {v.get('note', '')}" for k, v in bottom_2])
+        # Calculate impact scores for each criterion
+        impact_scores = []
+        for crit_id, score_data in scores.items():
+            score = score_data.get('score', 0)
+            weight = criterion_weights.get(crit_id, 0)
+            max_score = criterion_max_scores.get(crit_id, 10)
+            
+            # Calculate gap to pass threshold (normalized to criterion scale)
+            # For new format (point-based), we need to estimate per-criterion threshold
+            if "categories" in self.rubric:
+                # Estimate this criterion's threshold contribution
+                total_max = sum(criterion_max_scores.values())
+                if total_max > 0:
+                    criterion_threshold = (pass_threshold / total_max) * max_score
+                else:
+                    criterion_threshold = max_score * 0.65  # Default 65% threshold
+            else:
+                # Old format uses direct score thresholds (1-10 scale)
+                criterion_threshold = pass_threshold
+            
+            # Gap below threshold (for improvements)
+            gap = max(0, criterion_threshold - score)
+            improvement_impact = gap * weight
+            
+            # Current contribution (for strengths)
+            strength_impact = score * weight
+            
+            impact_scores.append({
+                'crit_id': crit_id,
+                'score_data': score_data,
+                'score': score,
+                'max_score': max_score,
+                'weight': weight,
+                'improvement_impact': improvement_impact,
+                'strength_impact': strength_impact,
+                'gap': gap
+            })
+        
+        # Sort by improvement impact (highest potential gain first)
+        improvements_sorted = sorted(
+            [x for x in impact_scores if x['improvement_impact'] > 0],
+            key=lambda x: x['improvement_impact'],
+            reverse=True
+        )
+        
+        # If no criteria are below threshold, sort by lowest scores with highest weights
+        if len(improvements_sorted) < 2:
+            improvements_sorted = sorted(
+                impact_scores,
+                key=lambda x: (x['max_score'] - x['score']) * x['weight'],
+                reverse=True
+            )
+        
+        bottom_2 = improvements_sorted[:2]
+        
+        # Sort by strength impact (highest contribution first)
+        strengths_sorted = sorted(
+            impact_scores,
+            key=lambda x: x['strength_impact'],
+            reverse=True
+        )
+        top_2 = strengths_sorted[:2]
+        
+        # Build summaries with impact context
+        top_2_summary = "\n".join([
+            f"- {criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())}: "
+            f"Score {item['score']}/{item['max_score']} "
+            f"(Weight: {item['weight']*100:.0f}%, Impact: {item['strength_impact']:.2f} contribution points) - "
+            f"{item['score_data'].get('note', '')}"
+            for item in top_2
+        ])
+        
+        bottom_2_summary = "\n".join([
+            f"- {criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())}: "
+            f"Score {item['score']}/{item['max_score']} "
+            f"(Weight: {item['weight']*100:.0f}%, Potential gain: {item['improvement_impact']:.2f} points) - "
+            f"{item['score_data'].get('note', '')}"
+            for item in bottom_2
+        ])
         
         # Prepare transcript excerpt and time references
         transcript_excerpt = transcript[:2500]
@@ -2395,23 +2486,39 @@ Visual analysis (if any):\n{visual_analysis or 'None'}
                     text_preview = seg.get('text', '').strip()[:50]
                     time_references += f"{i}. {time_str}: Low confidence ({confidence:.2f}) - \"{text_preview}...\"\n"
         
+        # Format overall score display based on rubric format
+        if "categories" in self.rubric:
+            overall_score_display = f"{evaluation.get('overall', {}).get('total_points', 0)}/{evaluation.get('overall', {}).get('max_points', 50)} ({evaluation.get('overall', {}).get('percentage', 0):.1f}%)"
+        else:
+            overall_score_display = f"{evaluation.get('overall', {}).get('weighted_score', 0):.1f}/10"
+        
         prompt = f"""
 You are providing constructive feedback directly to a demo video submitter. Based on the evaluation below, provide:
 
-1. Two specific strengths focusing on your HIGHEST scoring criteria - 2-3 sentences each
-2. Two specific areas for improvement focusing on your LOWEST scoring criteria - 2-3 sentences each with actionable suggestions
+1. Two specific strengths focusing on your HIGHEST IMPACT scoring areas (score × rubric weight) - 2-3 sentences each
+2. Two specific areas for improvement focusing on your HIGHEST IMPACT improvement opportunities (gap × rubric weight) - 2-3 sentences each with actionable suggestions
 
-When possible, reference specific timing or sections of your demo to make feedback more actionable.
+CRITICAL: Every strength and improvement MUST include:
+- Specific quote or description from the demo
+- Timestamp reference when relevant (e.g., "At 2:15...")
+- Clear connection to the rubric criterion
+- Concrete, actionable advice (for improvements)
+
+When possible, reference specific timing or sections of the demo to make feedback more actionable.
 
 Tone: {"Congratulatory and encouraging - you passed!" if is_passing else "Supportive and collaborative - help you improve without being discouraging"}
 
-TOP 2 SCORING AREAS (use these for strengths):
+TOP 2 HIGHEST-IMPACT STRENGTHS (prioritized by rubric weight):
 {top_2_summary}
 
-BOTTOM 2 SCORING AREAS (use these for improvements):
+These are your strongest areas that contribute most to your overall score. Highlight what specific actions or techniques made these successful.
+
+TOP 2 HIGHEST-IMPACT IMPROVEMENT OPPORTUNITIES (prioritized by potential score gain × rubric weight):
 {bottom_2_summary}
 
-Overall score: {evaluation.get('overall', {}).get('weighted_score', 0):.1f}/10 - Status: {pass_status.upper()}
+Focus your improvement feedback on these areas as they offer the most score improvement potential given their rubric weight and current gaps.
+
+Overall score: {overall_score_display} - Status: {pass_status.upper()}
 
 Transcript excerpt:
 {transcript_excerpt}{time_references}
@@ -2422,12 +2529,12 @@ Visual analysis:
 Return strictly parseable JSON with this exact structure:
 {{
     "strengths": [
-        {{"title": "<name of top scoring criterion>", "description": "2-3 sentence explanation of why this scored well"}},
-        {{"title": "<name of 2nd top scoring criterion>", "description": "2-3 sentence explanation of why this scored well"}}
+        {{"title": "<name of highest-impact strength criterion>", "description": "2-3 sentence explanation with specific examples from the demo, including timestamps when possible"}},
+        {{"title": "<name of 2nd highest-impact strength criterion>", "description": "2-3 sentence explanation with specific examples from the demo, including timestamps when possible"}}
     ],
     "improvements": [
-        {{"title": "<name of lowest scoring criterion>", "description": "2-3 sentence explanation with actionable advice to improve"}},
-        {{"title": "<name of 2nd lowest scoring criterion>", "description": "2-3 sentence explanation with actionable advice to improve"}}
+        {{"title": "<name of highest-impact improvement criterion>", "description": "2-3 sentence explanation with specific, actionable advice. Include what to change and how to change it."}},
+        {{"title": "<name of 2nd highest-impact improvement criterion>", "description": "2-3 sentence explanation with specific, actionable advice. Include what to change and how to change it."}}
     ]
 }}
 """
@@ -2473,25 +2580,23 @@ Return strictly parseable JSON with this exact structure:
                     print(f"Warning: Anthropic API call failed for feedback ({e}). Using fallback.")
                 pass
         
-        # Fallback: Generate basic feedback based on scores
+        # Fallback: Generate basic feedback based on impact scores
         strengths = []
         improvements = []
         
-        # Find highest scoring criteria
-        sorted_scores = sorted(scores.items(), key=lambda x: x[1].get('score', 0), reverse=True)
-        
-        for i, (criterion_id, data) in enumerate(sorted_scores[:2]):
-            criterion_label = criterion_labels.get(criterion_id, criterion_id.replace('_', ' ').title())
+        # Use the impact-based sorted lists we already calculated
+        for i, item in enumerate(top_2):
+            criterion_label = criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())
             strengths.append({
                 "title": criterion_label,
-                "description": f"You scored {data.get('score', 0)}/10. {data.get('note', 'Good performance in this area.')}"
+                "description": f"You scored {item['score']}/{item['max_score']} in this high-weight area (impact: {item['strength_impact']:.2f} points). {item['score_data'].get('note', 'Strong performance in this area.')}"
             })
         
-        for i, (criterion_id, data) in enumerate(sorted_scores[-2:]):
-            criterion_label = criterion_labels.get(criterion_id, criterion_id.replace('_', ' ').title())
+        for i, item in enumerate(bottom_2):
+            criterion_label = criterion_labels.get(item['crit_id'], item['crit_id'].replace('_', ' ').title())
             improvements.append({
                 "title": criterion_label,
-                "description": f"You scored {data.get('score', 0)}/10. Consider focusing on improving this aspect."
+                "description": f"You scored {item['score']}/{item['max_score']} in this high-weight area. Improving here could gain you up to {item['improvement_impact']:.2f} points. {item['score_data'].get('note', 'Consider focusing on improving this aspect.')}"
             })
         
         return {
